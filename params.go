@@ -18,7 +18,7 @@ const (
 	_tagKeyQuery  = "query"
 )
 
-var errNoTag = errors.New("tag not found")
+var errTagNotFound = errors.New("tag not found")
 
 type paramTagOpts struct {
 	Required   bool
@@ -29,24 +29,20 @@ type paramTagOpts struct {
 	Example    any
 }
 
-func newParamTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, error) {
+func parseTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, error) {
+	// TODO(naivary): exampels hould be defined in the tag e.g. example or
+	// example=. This make order irrelevant
 	p := paramTagOpts{}
-	tag, ok := field.Tag.Lookup(tagKey)
+	tagValue, ok := field.Tag.Lookup(tagKey)
 	if !ok {
-		return nil, errNoTag
+		return nil, errTagNotFound
 	}
-	values := strings.Split(tag, ",")
+	values := strings.Split(tagValue, ",")
 	if len(values) == 0 {
-		return nil, fmt.Errorf("path tag cannot be empty: %s", field.Name)
-	}
-	if len(values) != 2 {
-		return nil, fmt.Errorf("the value has to be at least the length of two. First element is the name second is an example value")
+		return nil, fmt.Errorf("empty tag(%s) for %v", tagKey, field)
 	}
 	// first element of the tag is always the name
 	p.Name = values[0]
-	// last element is always an example
-	p.Example = values[len(values)-1]
-	values = values[1 : len(values)-1]
 	if slices.Contains(values, "deprecated") {
 		p.Deprecated = true
 	}
@@ -70,6 +66,17 @@ func newParamTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, e
 		if slices.Contains(values, style.String()) {
 			p.Style = style
 			break
+		}
+	}
+	// example
+	for _, value := range values {
+		k, v, found := strings.Cut(value, "=")
+		if !found {
+			continue
+		}
+		switch k {
+		case "example":
+			p.Example = v
 		}
 	}
 	return &p, nil
@@ -104,8 +111,8 @@ func pathParams[I any]() ([]*Parameter, error) {
 		if err != nil {
 			return nil, err
 		}
-		opts, err := newParamTagOpts(_tagKeyPath, field)
-		if errors.Is(err, errNoTag) {
+		opts, err := parseTagOpts(_tagKeyPath, field)
+		if errors.Is(err, errTagNotFound) {
 			continue
 		}
 		if err != nil {
@@ -136,8 +143,8 @@ func headerParams[I any]() ([]*Parameter, error) {
 		if err != nil {
 			return nil, err
 		}
-		opts, err := newParamTagOpts(_tagKeyHeader, field)
-		if errors.Is(err, errNoTag) {
+		opts, err := parseTagOpts(_tagKeyHeader, field)
+		if errors.Is(err, errTagNotFound) {
 			continue
 		}
 		if err != nil {
@@ -169,8 +176,8 @@ func queryParams[I any]() ([]*Parameter, error) {
 		if err != nil {
 			return nil, err
 		}
-		opts, err := newParamTagOpts(_tagKeyQuery, field)
-		if errors.Is(err, errNoTag) {
+		opts, err := parseTagOpts(_tagKeyQuery, field)
+		if errors.Is(err, errTagNotFound) {
 			continue
 		}
 		if err != nil {
@@ -200,8 +207,8 @@ func cookieParams[I any]() ([]*Parameter, error) {
 		if err != nil {
 			return nil, err
 		}
-		opts, err := newParamTagOpts(_tagKeyCookie, field)
-		if errors.Is(err, errNoTag) {
+		opts, err := parseTagOpts(_tagKeyCookie, field)
+		if errors.Is(err, errTagNotFound) {
 			continue
 		}
 		if err != nil {
