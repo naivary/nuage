@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"reflect"
+	"slices"
 	"strings"
 )
 
@@ -32,19 +32,33 @@ func Handle[I, O any](api *api, operation *Operation, handler HandlerFuncErr[I, 
 	if !found {
 		return fmt.Errorf("invalid pattern syntax: %s", operation.Pattern)
 	}
+	params, err := paramsFor[I]()
+	if err != nil {
+		return err
+	}
+	operation.Parameters = params
+
 	api.openAPI.Paths[pattern] = &pathItem{}
 	api.mux.Handle(operation.Pattern, handler)
 	return nil
 }
 
-func isStruct[T any]() bool {
-	rtype := reflect.TypeFor[T]()
-	return deref(rtype).Kind() == reflect.Struct
-}
-
-func deref(rtype reflect.Type) reflect.Type {
-	if rtype.Kind() == reflect.Pointer {
-		return rtype.Elem()
+func paramsFor[I any]() ([]*Parameter, error) {
+	path, err := pathParams[I]()
+	if err != nil {
+		return nil, err
 	}
-	return rtype
+	header, err := headerParams[I]()
+	if err != nil {
+		return nil, err
+	}
+	query, err := queryParams[I]()
+	if err != nil {
+		return nil, err
+	}
+	cookie, err := cookieParams[I]()
+	if err != nil {
+		return nil, err
+	}
+	return slices.Concat(path, header, query, cookie), nil
 }
