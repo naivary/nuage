@@ -8,6 +8,8 @@ import (
 	"strconv"
 )
 
+var errInvalidKind = errors.New("invalid kind")
+
 func DecodePath[T any](r *http.Request, v *T) error {
 	rvalue := reflect.ValueOf(v).Elem()
 	rtype := rvalue.Type()
@@ -68,18 +70,16 @@ func DecodeHeader[T any](r *http.Request, v *T) error {
 		if headerValue == "" && opts.Required {
 			return fmt.Errorf("required header value not set: %s", opts.Name)
 		}
-
-		// decode it into the value provided
-		switch field.Type.Kind() {
-		case reflect.String:
-			rvalue.Field(i).SetString(headerValue)
-		case reflect.Int:
-			integer, err := strconv.ParseInt(headerValue, 10, 64)
-			if err != nil {
-				return err
-			}
-			rvalue.Field(i).SetInt(integer)
+		v, err := parseValue(field.Type.Kind(), headerValue)
+		if err != nil {
+			return err
 		}
+		if !isAssignable(rvalue.Field(i), v) {
+			fmt.Println("is not assignable")
+			return nil
+		}
+		err = assign(rvalue.Field(i), v)
+		fmt.Println(err)
 	}
 	return nil
 }
@@ -109,17 +109,6 @@ func DecodeQuery[T any](r *http.Request, v *T) error {
 		if queryValue == "" {
 			continue
 		}
-		// decode it into the value provided
-		switch field.Type.Kind() {
-		case reflect.String:
-			rvalue.Field(i).SetString(queryValue)
-		case reflect.Int:
-			integer, err := strconv.ParseInt(queryValue, 10, 64)
-			if err != nil {
-				return err
-			}
-			rvalue.Field(i).SetInt(integer)
-		}
 	}
 	return nil
 }
@@ -143,25 +132,35 @@ func DecodeCookie[T any](r *http.Request, v *T) error {
 			return err
 		}
 		cookie, err := r.Cookie(opts.Name)
-		fmt.Println(err)
 		if errors.Is(err, http.ErrNoCookie) && opts.Required {
 			return fmt.Errorf("required cookie not set: %s", opts.Name)
+		}
+		if errors.Is(err, http.ErrNoCookie) && !opts.Required {
+			continue
 		}
 		if err != nil {
 			return err
 		}
-		cookieValue := cookie.Value
-		// decode it into the value provided
-		switch field.Type.Kind() {
-		case reflect.String:
-			rvalue.Field(i).SetString(cookieValue)
-		case reflect.Int:
-			integer, err := strconv.ParseInt(cookieValue, 10, 64)
-			if err != nil {
-				return err
-			}
-			rvalue.Field(i).SetInt(integer)
-		}
+		_ = cookie
 	}
 	return nil
+}
+
+func parseValue(kind reflect.Kind, s string) (reflect.Value, error) {
+	rvzero := reflect.Value{}
+	switch kind {
+	case reflect.String:
+		return reflect.ValueOf(s), nil
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		integer, err := strconv.ParseInt(s, 10, 64)
+		return reflect.ValueOf(integer), err
+	case reflect.Float32, reflect.Float64:
+		float, err := strconv.ParseFloat(s, 64)
+		return reflect.ValueOf(float), err
+	case reflect.Bool:
+		boolean, err := strconv.ParseBool(s)
+		return reflect.ValueOf(boolean), err
+	default:
+		return rvzero, errInvalidKind
+	}
 }
