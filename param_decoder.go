@@ -74,12 +74,11 @@ func DecodeHeader[T any](r *http.Request, v *T) error {
 		if err != nil {
 			return err
 		}
-		if !isAssignable(rvalue.Field(i), v) {
-			fmt.Println("is not assignable")
-			return nil
+		if isAssignable(rvalue.Field(i), v) {
+			err = assign(rvalue.Field(i), v)
+			fmt.Println(err)
+			return err
 		}
-		err = assign(rvalue.Field(i), v)
-		fmt.Println(err)
 	}
 	return nil
 }

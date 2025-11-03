@@ -1,8 +1,10 @@
 package nuage
 
 import (
+	"math"
 	"net/http"
 	"net/url"
+	"strconv"
 	"testing"
 )
 
@@ -30,7 +32,7 @@ func TestPathParamDecoder(t *testing.T) {
 
 func TestHeaderParamDecoder(t *testing.T) {
 	type v struct {
-		H1 int    `header:"h1"`
+		H1 int8    `header:"h1"`
 		H2 string `header:"h2"`
 		H3 string `header:"h3,required"`
 	}
@@ -39,7 +41,7 @@ func TestHeaderParamDecoder(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
-	r.Header.Set("h1", "123")
+	r.Header.Set("h1", strconv.FormatInt(math.MaxInt8+1, 10))
 	r.Header.Set("h2", "value-for-h2")
 	r.Header.Set("h3", "value-for-h3")
 
