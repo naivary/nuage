@@ -75,6 +75,26 @@ func newParamTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, e
 	return &p, nil
 }
 
+func paramsFor[I any]() ([]*Parameter, error) {
+	path, err := pathParams[I]()
+	if err != nil {
+		return nil, err
+	}
+	header, err := headerParams[I]()
+	if err != nil {
+		return nil, err
+	}
+	query, err := queryParams[I]()
+	if err != nil {
+		return nil, err
+	}
+	cookie, err := cookieParams[I]()
+	if err != nil {
+		return nil, err
+	}
+	return slices.Concat(path, header, query, cookie), nil
+}
+
 func pathParams[I any]() ([]*Parameter, error) {
 	s := reflect.TypeFor[I]()
 	params := make([]*Parameter, 0, s.NumField())
