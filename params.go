@@ -30,7 +30,7 @@ type paramTagOpts struct {
 }
 
 func parseTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, error) {
-	p := paramTagOpts{}
+	opts := paramTagOpts{}
 	tagValue, ok := field.Tag.Lookup(tagKey)
 	if !ok {
 		return nil, errTagNotFound
@@ -40,15 +40,15 @@ func parseTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, erro
 		return nil, fmt.Errorf("empty tag(%s) for %v", tagKey, field)
 	}
 	// first element of the tag is always the name
-	p.Name = values[0]
+	opts.Name = values[0]
 	if slices.Contains(values, "deprecated") {
-		p.Deprecated = true
+		opts.Deprecated = true
 	}
 	if slices.Contains(values, "optional") {
-		p.Optional = true
+		opts.Optional = true
 	}
 	if slices.Contains(values, "required") {
-		p.Required = true
+		opts.Required = true
 	}
 	styles := []Style{
 		StyleMatrix,
@@ -62,7 +62,7 @@ func parseTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, erro
 	}
 	for _, style := range styles {
 		if slices.Contains(values, style.String()) {
-			p.Style = style
+			opts.Style = style
 			break
 		}
 	}
@@ -74,30 +74,10 @@ func parseTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, erro
 		}
 		switch k {
 		case "example":
-			p.Example = v
+			opts.Example = v
 		}
 	}
-	return &p, nil
-}
-
-func paramsFor[I any]() ([]*Parameter, error) {
-	path, err := pathParams[I]()
-	if err != nil {
-		return nil, err
-	}
-	header, err := headerParams[I]()
-	if err != nil {
-		return nil, err
-	}
-	query, err := queryParams[I]()
-	if err != nil {
-		return nil, err
-	}
-	cookie, err := cookieParams[I]()
-	if err != nil {
-		return nil, err
-	}
-	return slices.Concat(path, header, query, cookie), nil
+	return &opts, nil
 }
 
 func paramsFor[I any]() ([]*Parameter, error) {
@@ -111,156 +91,87 @@ func paramsFor[I any]() ([]*Parameter, error) {
 		}
 		tagKeys := []string{_tagKeyPath, _tagKeyHeader, _tagKeyQuery, _tagKeyCookie}
 		for _, tagKey := range tagKeys {
-			opts, err := parseTagOpts(_tagKeyPath, field)
+			opts, err := parseTagOpts(tagKey, field)
 			if errors.Is(err, errTagNotFound) {
 				continue
 			}
 			if err != nil {
 				return nil, err
 			}
-			var param *Parameter
+
+			var (
+				param       *Parameter
+				newParamErr error
+			)
 			switch tagKey {
 			case _tagKeyPath:
-				param = newPathParam(opts, s)
+				param, newParamErr = newPathParam(opts)
 			case _tagKeyHeader:
-				param = newHeaderParam(opts, s)
+				param, newParamErr = newHeaderParam(opts)
 			case _tagKeyQuery:
-				param = newQueryParam(opts, s)
+				param, newParamErr = newQueryParam(opts)
 			case _tagKeyCookie:
-				param = newCookieParam(opts, s)
+				param, newParamErr = newCookieParam(opts)
 			}
+			if newParamErr != nil {
+				return nil, newParamErr
+			}
+			param.Schema = schema
 			params = append(params, param)
+
+			// only one parameter type is allowed per field.
 			break
 		}
 	}
 	return params, nil
 }
 
-// TODO(naivary): the functions *Params are a bit repetitive I think passing
-// functions to create new function based on the found tag is the way to go.
-func pathParams[I any]() ([]*Parameter, error) {
-	s := reflect.TypeFor[I]()
-	params := make([]*Parameter, 0, s.NumField())
-	for i := range s.NumField() {
-		field := s.Field(i)
-		schema, err := jsonschema.ForType(field.Type, &jsonschema.ForOptions{})
-		if err != nil {
-			return nil, err
-		}
-		opts, err := parseTagOpts(_tagKeyPath, field)
-		if errors.Is(err, errTagNotFound) {
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		param := Parameter{
-			ParamIn:    ParamInPath,
-			Schema:     schema,
-			Name:       opts.Name,
-			Deprecated: opts.Deprecated,
-			Style:      opts.Style,
-			// Path Parameters are always required.
-			Required: true,
-			Example:  opts.Example,
-		}
-		params = append(params, &param)
-	}
-	return params, nil
+func newPathParam(opts *paramTagOpts) (*Parameter, error) {
+	return &Parameter{
+		ParamIn:    ParamInPath,
+		Name:       opts.Name,
+		Deprecated: opts.Deprecated,
+		Style:      opts.Style,
+		// Path Parameters are always required.
+		Required: true,
+		Example:  opts.Example,
+	}, nil
 }
 
-func headerParams[I any]() ([]*Parameter, error) {
-	s := reflect.TypeFor[I]()
-	params := make([]*Parameter, 0, s.NumField())
-	for i := range s.NumField() {
-		field := s.Field(i)
-		schema, err := jsonschema.ForType(field.Type, &jsonschema.ForOptions{})
-		if err != nil {
-			return nil, err
-		}
-		opts, err := parseTagOpts(_tagKeyHeader, field)
-		if errors.Is(err, errTagNotFound) {
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		// Header key must be canonical
-		opts.Name = http.CanonicalHeaderKey(opts.Name)
-		param := Parameter{
-			ParamIn:    ParamInHeader,
-			Schema:     schema,
-			Name:       opts.Name,
-			Deprecated: opts.Deprecated,
-			Style:      opts.Style,
-			Required:   opts.Required,
-			Example:    opts.Example,
-		}
-		params = append(params, &param)
+func newHeaderParam(opts *paramTagOpts) (*Parameter, error) {
+	// Header key must be canonical
+	canonicalName := http.CanonicalHeaderKey(opts.Name)
+	if canonicalName != opts.Name {
+		return nil, fmt.Errorf("header name is not canonical: %s. Change it to: %s", opts.Name, canonicalName)
 	}
-	return params, nil
+	return &Parameter{
+		ParamIn:    ParamInHeader,
+		Name:       canonicalName,
+		Deprecated: opts.Deprecated,
+		Style:      opts.Style,
+		Required:   opts.Required,
+		Example:    opts.Example,
+	}, nil
 }
 
-func queryParams[I any]() ([]*Parameter, error) {
-	s := reflect.TypeFor[I]()
-	params := make([]*Parameter, 0, s.NumField())
-	for i := range s.NumField() {
-		field := s.Field(i)
-		schema, err := jsonschema.ForType(field.Type, &jsonschema.ForOptions{})
-		if err != nil {
-			return nil, err
-		}
-		opts, err := parseTagOpts(_tagKeyQuery, field)
-		if errors.Is(err, errTagNotFound) {
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		param := Parameter{
-			ParamIn:    ParamInQuery,
-			Schema:     schema,
-			Name:       opts.Name,
-			Deprecated: opts.Deprecated,
-			Style:      opts.Style,
-			Required:   opts.Required,
-			Example:    opts.Example,
-		}
-		params = append(params, &param)
-	}
-	return params, nil
+func newQueryParam(opts *paramTagOpts) (*Parameter, error) {
+	return &Parameter{
+		ParamIn:    ParamInQuery,
+		Name:       opts.Name,
+		Deprecated: opts.Deprecated,
+		Style:      opts.Style,
+		Required:   opts.Required,
+		Example:    opts.Example,
+	}, nil
 }
 
-func cookieParams[I any]() ([]*Parameter, error) {
-	s := reflect.TypeFor[I]()
-	params := make([]*Parameter, 0, s.NumField())
-	for i := range s.NumField() {
-		field := s.Field(i)
-		schema, err := jsonschema.ForType(field.Type, &jsonschema.ForOptions{})
-		if err != nil {
-			return nil, err
-		}
-		opts, err := parseTagOpts(_tagKeyCookie, field)
-		if errors.Is(err, errTagNotFound) {
-			continue
-		}
-		if err != nil {
-			return nil, err
-		}
-
-		param := Parameter{
-			ParamIn:    ParamInCookie,
-			Schema:     schema,
-			Name:       opts.Name,
-			Deprecated: opts.Deprecated,
-			Style:      opts.Style,
-			Required:   opts.Required,
-			Example:    opts.Example,
-		}
-		params = append(params, &param)
-	}
-	return params, nil
+func newCookieParam(opts *paramTagOpts) (*Parameter, error) {
+	return &Parameter{
+		ParamIn:    ParamInCookie,
+		Name:       opts.Name,
+		Deprecated: opts.Deprecated,
+		Style:      opts.Style,
+		Required:   opts.Required,
+		Example:    opts.Example,
+	}, nil
 }
