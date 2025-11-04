@@ -30,8 +30,6 @@ type paramTagOpts struct {
 }
 
 func parseTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, error) {
-	// TODO(naivary): exampels hould be defined in the tag e.g. example or
-	// example=. This make order irrelevant
 	p := paramTagOpts{}
 	tagValue, ok := field.Tag.Lookup(tagKey)
 	if !ok {
@@ -102,6 +100,44 @@ func paramsFor[I any]() ([]*Parameter, error) {
 	return slices.Concat(path, header, query, cookie), nil
 }
 
+func paramsFor[I any]() ([]*Parameter, error) {
+	s := reflect.TypeFor[I]()
+	params := make([]*Parameter, 0, s.NumField())
+	for i := range s.NumField() {
+		field := s.Field(i)
+		schema, err := jsonschema.ForType(field.Type, &jsonschema.ForOptions{})
+		if err != nil {
+			return nil, err
+		}
+		tagKeys := []string{_tagKeyPath, _tagKeyHeader, _tagKeyQuery, _tagKeyCookie}
+		for _, tagKey := range tagKeys {
+			opts, err := parseTagOpts(_tagKeyPath, field)
+			if errors.Is(err, errTagNotFound) {
+				continue
+			}
+			if err != nil {
+				return nil, err
+			}
+			var param *Parameter
+			switch tagKey {
+			case _tagKeyPath:
+				param = newPathParam(opts, s)
+			case _tagKeyHeader:
+				param = newHeaderParam(opts, s)
+			case _tagKeyQuery:
+				param = newQueryParam(opts, s)
+			case _tagKeyCookie:
+				param = newCookieParam(opts, s)
+			}
+			params = append(params, param)
+			break
+		}
+	}
+	return params, nil
+}
+
+// TODO(naivary): the functions *Params are a bit repetitive I think passing
+// functions to create new function based on the found tag is the way to go.
 func pathParams[I any]() ([]*Parameter, error) {
 	s := reflect.TypeFor[I]()
 	params := make([]*Parameter, 0, s.NumField())
