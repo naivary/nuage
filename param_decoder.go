@@ -10,6 +10,7 @@ import (
 
 var errInvalidKind = errors.New("invalid kind")
 
+// TODO(naivary): this is too repetitve with the other decode functions.
 func DecodePath[T any](r *http.Request, v *T) error {
 	rvalue := reflect.ValueOf(v).Elem()
 	rtype := rvalue.Type()
