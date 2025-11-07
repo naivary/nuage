@@ -10,46 +10,65 @@ func TestIsAssignable(t *testing.T) {
 		name  string
 		valid bool
 		lhs   reflect.Value
-		rhs   string
+		rhs   []string
 	}{
 		{
 			name:  "ptr string",
 			valid: true,
 			lhs:   reflect.ValueOf(ptrTo("")),
-			rhs:   "test",
+			rhs:   []string{"test"},
 		},
 		{
 			name:  "int",
 			valid: true,
 			lhs:   reflect.ValueOf(ptrTo(0)),
-			rhs:   "12937812",
+			rhs:   []string{"12937812"},
 		},
 		{
 			name:  "float",
 			valid: true,
 			lhs:   reflect.ValueOf(ptrTo(0.0)),
-			rhs:   "12937812.3123",
+			rhs:   []string{"12937812.3123"},
 		},
 		{
 			name:  "slice with ptr type",
 			valid: true,
 			lhs:   reflect.ValueOf([]*string{}),
-			rhs:   "test",
+			rhs:   []string{"test"},
 		},
 		{
 			name:  "slice",
 			valid: true,
 			lhs:   reflect.ValueOf([]string{}),
-			rhs:   "test",
+			rhs:   []string{"test"},
+		},
+		{
+			name:  "map",
+			valid: true,
+			lhs:   reflect.ValueOf(map[string]int{}),
+			rhs:   []string{"t1", "1", "t2", "2"},
+		},
+		{
+			name:  "map key ptr",
+			valid: true,
+			lhs:   reflect.ValueOf(map[*string]int{}),
+			rhs:   []string{"t1", "1", "t2", "2"},
+		},
+		{
+			name:  "map value ptr",
+			valid: true,
+			lhs:   reflect.ValueOf(map[string]*int{}),
+			rhs:   []string{"t1", "1", "t2", "2"},
 		},
 	}
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			err := assign(tc.lhs, tc.rhs)
+			err := assign(tc.lhs, tc.rhs...)
 			if err != nil && tc.valid {
 				t.Errorf("expected to assign %v = %v", tc.lhs.Kind(), tc.rhs)
 			}
+			t.Logf("lhs: %v", tc.lhs)
 		})
 	}
 }

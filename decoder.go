@@ -34,6 +34,10 @@ func Decode[T any](r *http.Request, v *T) error {
 				if value == "" {
 					return fmt.Errorf("path parameter required: %s", opts.Name)
 				}
+				err := assign(rvalue.Field(i), value)
+				if err != nil {
+					return err
+				}
 			case _tagKeyHeader:
 				value = r.Header.Get(opts.Name)
 				if value == "" && opts.Required {

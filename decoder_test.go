@@ -16,7 +16,7 @@ func TestDecode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
-	r.SetPathValue("p1", strconv.FormatInt(math.MaxInt8+1, 10))
+	r.SetPathValue("p1", strconv.FormatInt(math.MaxInt8, 10))
 	var input paramsDecodeT1
 	err = Decode(r, &input)
 	if err != nil {
