@@ -110,3 +110,8 @@ func isComplex(kind reflect.Kind) bool {
 		return false
 	}
 }
+
+func ptrTo[T any](v T) *T {
+	var t T
+	return &t
+}

@@ -13,6 +13,8 @@ import (
 
 var errTagNotFound = errors.New("tag not found")
 
+var _tagKeys = []string{_tagKeyPath, _tagKeyHeader, _tagKeyQuery, _tagKeyCookie}
+
 const (
 	_tagKeyHeader = "header"
 	_tagKeyCookie = "cookie"
@@ -20,10 +22,9 @@ const (
 	_tagKeyQuery  = "query"
 )
 
-var _tagKeys = []string{_tagKeyPath, _tagKeyHeader, _tagKeyQuery, _tagKeyCookie}
-
 type paramTagOpts struct {
 	Required   bool
+	Explode    *bool
 	Name       string
 	Deprecated bool
 	Style      Style
@@ -50,6 +51,9 @@ func parseTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, erro
 	}
 	if slices.Contains(values, "required") {
 		opts.Required = true
+	}
+	if slices.Contains(values, "explode") {
+		opts.Explode = ptrTo(true)
 	}
 	styles := []Style{
 		StyleMatrix,
@@ -165,6 +169,7 @@ func newHeaderParam(opts *paramTagOpts) (*Parameter, error) {
 func newQueryParam(opts *paramTagOpts) (*Parameter, error) {
 	if opts.Style == "" {
 		opts.Style = StyleForm
+		opts.Explode = ptrTo(true)
 	}
 	validStyles := []Style{StyleForm, StyleSpaceDelim, StylePipeDelim, StyleDeepObject}
 	if !slices.Contains(validStyles, opts.Style) {
