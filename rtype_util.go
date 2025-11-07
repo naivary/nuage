@@ -3,7 +3,6 @@ package nuage
 import (
 	"fmt"
 	"reflect"
-	"slices"
 )
 
 func isStruct[T any]() bool {
@@ -27,35 +26,87 @@ func isAssignable(a, b reflect.Value) bool {
 		// value `a` cannot be changed
 		return false
 	}
-	kind := a.Kind()
-	if kind == reflect.Invalid {
+	if deref(b.Type()).ConvertibleTo(deref(a.Type())) {
+		return true
+	}
+	varKind := deref(a.Type()).Kind()
+	valueKind := deref(b.Type()).Kind()
+	if varKind == reflect.Invalid {
 		return false
 	}
-	if isInt(kind) && isInt(b.Kind()) {
+	if varKind == reflect.String && valueKind == reflect.String {
+		return true
+	}
+	if varKind == reflect.Bool && valueKind == reflect.Bool {
+		return true
+	}
+	if isInt(varKind) && isInt(valueKind) {
 		return !a.OverflowInt(b.Int())
 	}
-	// sane default is false because false positives may result in panics.
+	if isFloat(varKind) && isFloat(valueKind) {
+		return !a.OverflowFloat(b.Float())
+	}
+	if isUint(varKind) && isUint(valueKind) {
+		return !a.OverflowUint(b.Uint())
+	}
+	if isComplex(varKind) && isComplex(valueKind) {
+		return !a.OverflowComplex(b.Complex())
+	}
+	// sane default is false because false-positives are more costly resulting
+	// in panics in production.
 	return false
 }
 
-func assign(a, b reflect.Value) error {
-	if !isAssignable(a, b) {
+func assign[T any](a reflect.Value, b T) error {
+	bvalue := reflect.ValueOf(b)
+	if !isAssignable(a, bvalue) {
 		return fmt.Errorf("not assignable: %v = %v", a, b)
 	}
-	kind := a.Kind()
-	if isInt(kind) {
-		a.SetInt(b.Int())
-	}
+	a.Set(bvalue)
 	return nil
 }
 
 func isInt(kind reflect.Kind) bool {
-	kinds := []reflect.Kind{
-		reflect.Int,
+	switch kind {
+	case reflect.Int,
 		reflect.Int8,
 		reflect.Int16,
 		reflect.Int32,
-		reflect.Int64,
+		reflect.Int64:
+		return true
+	default:
+		return false
+
 	}
-	return slices.Contains(kinds, kind)
+}
+
+func isFloat(kind reflect.Kind) bool {
+	switch kind {
+	case reflect.Float32, reflect.Float64:
+		return true
+	default:
+		return false
+	}
+}
+
+func isUint(kind reflect.Kind) bool {
+	switch kind {
+	case reflect.Uint,
+		reflect.Uint8,
+		reflect.Uint16,
+		reflect.Uint32,
+		reflect.Uint64:
+		return true
+	default:
+		return false
+	}
+}
+
+func isComplex(kind reflect.Kind) bool {
+	switch kind {
+	case reflect.Complex64, reflect.Complex128:
+		return true
+	default:
+		return false
+	}
 }

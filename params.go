@@ -11,6 +11,8 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
+var errTagNotFound = errors.New("tag not found")
+
 const (
 	_tagKeyHeader = "header"
 	_tagKeyCookie = "cookie"
@@ -18,14 +20,13 @@ const (
 	_tagKeyQuery  = "query"
 )
 
-var errTagNotFound = errors.New("tag not found")
+var _tagKeys = []string{_tagKeyPath, _tagKeyHeader, _tagKeyQuery, _tagKeyCookie}
 
 type paramTagOpts struct {
 	Required   bool
 	Name       string
 	Deprecated bool
 	Style      Style
-	Optional   bool
 	Example    any
 }
 
@@ -45,7 +46,7 @@ func parseTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, erro
 		opts.Deprecated = true
 	}
 	if slices.Contains(values, "optional") {
-		opts.Optional = true
+		opts.Required = false
 	}
 	if slices.Contains(values, "required") {
 		opts.Required = true
@@ -66,7 +67,7 @@ func parseTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, erro
 			break
 		}
 	}
-	// example
+	// example option
 	for _, value := range values {
 		k, v, found := strings.Cut(value, "=")
 		if !found {
@@ -89,8 +90,7 @@ func paramsFor[I any]() ([]*Parameter, error) {
 		if err != nil {
 			return nil, err
 		}
-		tagKeys := []string{_tagKeyPath, _tagKeyHeader, _tagKeyQuery, _tagKeyCookie}
-		for _, tagKey := range tagKeys {
+		for _, tagKey := range _tagKeys {
 			opts, err := parseTagOpts(tagKey, field)
 			if errors.Is(err, errTagNotFound) {
 				continue
@@ -127,6 +127,13 @@ func paramsFor[I any]() ([]*Parameter, error) {
 }
 
 func newPathParam(opts *paramTagOpts) (*Parameter, error) {
+	if opts.Style == "" {
+		opts.Style = StyleSimple
+	}
+	validStyles := []Style{StyleSimple, StyleLabel, StyleMatrix}
+	if !slices.Contains(validStyles, opts.Style) {
+		return nil, fmt.Errorf("invalid style: %s. Valid styles are: %v", opts.Style, validStyles)
+	}
 	return &Parameter{
 		ParamIn:    ParamInPath,
 		Name:       opts.Name,
@@ -148,13 +155,21 @@ func newHeaderParam(opts *paramTagOpts) (*Parameter, error) {
 		ParamIn:    ParamInHeader,
 		Name:       canonicalName,
 		Deprecated: opts.Deprecated,
-		Style:      opts.Style,
-		Required:   opts.Required,
-		Example:    opts.Example,
+		// Headers are always style simple
+		Style:    StyleSimple,
+		Required: opts.Required,
+		Example:  opts.Example,
 	}, nil
 }
 
 func newQueryParam(opts *paramTagOpts) (*Parameter, error) {
+	if opts.Style == "" {
+		opts.Style = StyleForm
+	}
+	validStyles := []Style{StyleForm, StyleSpaceDelim, StylePipeDelim, StyleDeepObject}
+	if !slices.Contains(validStyles, opts.Style) {
+		return nil, fmt.Errorf("invalid style: %s. Valid styles are: %v", opts.Style, validStyles)
+	}
 	return &Parameter{
 		ParamIn:    ParamInQuery,
 		Name:       opts.Name,
@@ -162,6 +177,7 @@ func newQueryParam(opts *paramTagOpts) (*Parameter, error) {
 		Style:      opts.Style,
 		Required:   opts.Required,
 		Example:    opts.Example,
+		Explode:    true,
 	}, nil
 }
 
@@ -170,7 +186,7 @@ func newCookieParam(opts *paramTagOpts) (*Parameter, error) {
 		ParamIn:    ParamInCookie,
 		Name:       opts.Name,
 		Deprecated: opts.Deprecated,
-		Style:      opts.Style,
+		Style:      StyleForm,
 		Required:   opts.Required,
 		Example:    opts.Example,
 	}, nil

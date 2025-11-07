@@ -71,6 +71,7 @@ type Parameter struct {
 	Example     any                `json:"example,omitempty"`
 	Schema      *jsonschema.Schema `json:"schema,omitempty"`
 	Style       Style              `json:"style,omitempty"`
+	Explode     bool               `json:"explode,omitempty"`
 }
 
 type Response struct {
