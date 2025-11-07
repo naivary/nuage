@@ -46,9 +46,6 @@ func parseTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, erro
 	if slices.Contains(values, "deprecated") {
 		opts.Deprecated = true
 	}
-	if slices.Contains(values, "optional") {
-		opts.Required = false
-	}
 	if slices.Contains(values, "required") {
 		opts.Required = true
 	}

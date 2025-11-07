@@ -3,6 +3,7 @@ package nuage
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 )
 
 func isStruct[T any]() bool {
@@ -17,52 +18,81 @@ func deref(rtype reflect.Type) reflect.Type {
 	return rtype
 }
 
-// isAssignable reports whether value a is assignable to value b. It considers
-// more options than `CanConvert`. For example CanConvert will report false for
-// int and int64 but it might be possible to fit the value of int64 into int.
-func isAssignable(a, b reflect.Value) bool {
-	// we want to check if a = b is possible.
-	if !a.CanSet() {
-		// value `a` cannot be changed
-		return false
-	}
-	if deref(b.Type()).ConvertibleTo(deref(a.Type())) {
-		return true
-	}
-	varKind := deref(a.Type()).Kind()
-	valueKind := deref(b.Type()).Kind()
-	if varKind == reflect.Invalid {
-		return false
-	}
-	if varKind == reflect.String && valueKind == reflect.String {
-		return true
-	}
-	if varKind == reflect.Bool && valueKind == reflect.Bool {
-		return true
-	}
-	if isInt(varKind) && isInt(valueKind) {
-		return !a.OverflowInt(b.Int())
-	}
-	if isFloat(varKind) && isFloat(valueKind) {
-		return !a.OverflowFloat(b.Float())
-	}
-	if isUint(varKind) && isUint(valueKind) {
-		return !a.OverflowUint(b.Uint())
-	}
-	if isComplex(varKind) && isComplex(valueKind) {
-		return !a.OverflowComplex(b.Complex())
-	}
-	// sane default is false because false-positives are more costly resulting
-	// in panics in production.
-	return false
+func isPointer(rtype reflect.Type) bool {
+	return rtype.Kind() == reflect.Pointer
 }
 
-func assign[T any](a reflect.Value, b T) error {
-	bvalue := reflect.ValueOf(b)
-	if !isAssignable(a, bvalue) {
-		return fmt.Errorf("not assignable: %v = %v", a, b)
+func assign(lhs reflect.Value, rhs string) error {
+	// if !lhs.CanSet() {
+	// 	return fmt.Errorf("lhs is cannot be set: %s", lhs)
+	// }
+	if isPointer(lhs.Type()) && !lhs.IsNil() {
+		lhs = lhs.Elem()
 	}
-	a.Set(bvalue)
+
+	switch deref(lhs.Type()).Kind() {
+	case reflect.String:
+		lhs.SetString(rhs)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		integer, err := strconv.ParseInt(rhs, 10, 64)
+		if err != nil {
+			return err
+		}
+		if lhs.OverflowInt(integer) {
+			return fmt.Errorf("overflow: %d to %s", integer, lhs.Kind())
+		}
+		lhs.SetInt(integer)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		uinteger, err := strconv.ParseUint(rhs, 10, 64)
+		if err != nil {
+			return err
+		}
+		if lhs.OverflowUint(uinteger) {
+			return fmt.Errorf("overflow: %d to %s", uinteger, lhs.Kind())
+		}
+		lhs.SetUint(uinteger)
+	case reflect.Float32, reflect.Float64:
+		float, err := strconv.ParseFloat(rhs, 64)
+		if err != nil {
+			return err
+		}
+		if lhs.OverflowFloat(float) {
+			return fmt.Errorf("overflow: %f to %s", float, lhs.Kind())
+		}
+	case reflect.Complex64, reflect.Complex128:
+		c, err := strconv.ParseComplex(rhs, 128)
+		if err != nil {
+			return err
+		}
+		if lhs.OverflowComplex(c) {
+			return fmt.Errorf("overflow: %f to %s", c, lhs.Kind())
+		}
+		lhs.SetComplex(c)
+	case reflect.Bool:
+		boolean, err := strconv.ParseBool(rhs)
+		if err != nil {
+			return err
+		}
+		lhs.SetBool(boolean)
+	case reflect.Slice:
+		elemType := lhs.Type().Elem()
+		isPointer := isPointer(elemType)
+		if isPointer {
+			elemType = elemType.Elem()
+		}
+		elem := reflect.New(elemType)
+		err := assign(elem, rhs)
+		if err != nil {
+			return err
+		}
+		if !isPointer {
+			reflect.Append(lhs, elem.Elem())
+			return nil
+		}
+		reflect.Append(lhs, elem)
+	default:
+		return fmt.Errorf("cannot assign: %s to %s", rhs, lhs)
+	}
 	return nil
 }
 
@@ -111,7 +141,10 @@ func isComplex(kind reflect.Kind) bool {
 	}
 }
 
+func isString(kind reflect.Kind) bool {
+	return kind == reflect.String
+}
+
 func ptrTo[T any](v T) *T {
-	var t T
-	return &t
+	return &v
 }
