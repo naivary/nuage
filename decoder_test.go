@@ -7,8 +7,9 @@ import (
 	"testing"
 )
 
-type paramsDecodeT1 struct {
-	P1 int8 `path:"p1"`
+type pathParamsDecoder struct {
+	P1 int8     `path:"p1"`
+	P2 []string `path:"p2"`
 }
 
 func TestDecode(t *testing.T) {
@@ -17,7 +18,8 @@ func TestDecode(t *testing.T) {
 		t.Fatalf("new request: %v", err)
 	}
 	r.SetPathValue("p1", strconv.FormatInt(math.MaxInt8, 10))
-	var input paramsDecodeT1
+	r.SetPathValue("p2", "v1,v2,v3")
+	var input pathParamsDecoder
 	err = Decode(r, &input)
 	if err != nil {
 		t.Errorf("decode: %v", err)

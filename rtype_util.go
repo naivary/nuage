@@ -11,17 +11,20 @@ func assign(lhs reflect.Value, rhs ...string) error {
 	if len(rhs) == 0 {
 		return errors.New("rhs is empty")
 	}
-	if isPointer(lhs.Type()) && !lhs.IsNil() {
-		lhs = lhs.Elem()
-	}
 
 	switch deref(lhs.Type()).Kind() {
 	case reflect.String:
+		if isPointer(lhs.Type()) {
+			lhs = lhs.Elem()
+		}
 		lhs.SetString(rhs[0])
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		integer, err := strconv.ParseInt(rhs[0], 10, 64)
 		if err != nil {
 			return err
+		}
+		if isPointer(lhs.Type()) {
+			lhs = lhs.Elem()
 		}
 		if lhs.OverflowInt(integer) {
 			return fmt.Errorf("overflow: %d to %s", integer, lhs.Kind())
@@ -32,6 +35,9 @@ func assign(lhs reflect.Value, rhs ...string) error {
 		if err != nil {
 			return err
 		}
+		if isPointer(lhs.Type()) {
+			lhs = lhs.Elem()
+		}
 		if lhs.OverflowUint(uinteger) {
 			return fmt.Errorf("overflow: %d to %s", uinteger, lhs.Kind())
 		}
@@ -41,6 +47,9 @@ func assign(lhs reflect.Value, rhs ...string) error {
 		if err != nil {
 			return err
 		}
+		if isPointer(lhs.Type()) {
+			lhs = lhs.Elem()
+		}
 		if lhs.OverflowFloat(float) {
 			return fmt.Errorf("overflow: %f to %s", float, lhs.Kind())
 		}
@@ -48,6 +57,9 @@ func assign(lhs reflect.Value, rhs ...string) error {
 		c, err := strconv.ParseComplex(rhs[0], 128)
 		if err != nil {
 			return err
+		}
+		if isPointer(lhs.Type()) {
+			lhs = lhs.Elem()
 		}
 		if lhs.OverflowComplex(c) {
 			return fmt.Errorf("overflow: %f to %s", c, lhs.Kind())
@@ -58,46 +70,32 @@ func assign(lhs reflect.Value, rhs ...string) error {
 		if err != nil {
 			return err
 		}
+		if isPointer(lhs.Type()) {
+			lhs = lhs.Elem()
+		}
 		lhs.SetBool(boolean)
 	case reflect.Slice:
-		elemType := lhs.Type().Elem()
-		isPointer := isPointer(elemType)
-		if isPointer {
-			elemType = elemType.Elem()
-		}
 		elems := make([]reflect.Value, 0, len(rhs))
 		for _, rh := range rhs {
-			elem := reflect.New(elemType)
+			elem, isPtr := newVar(lhs.Type().Elem())
 			err := assign(elem, rh)
 			if err != nil {
 				return err
 			}
-			if !isPointer {
+			if !isPtr {
 				elems = append(elems, elem.Elem())
 				continue
 			}
 			elems = append(elems, elem)
 		}
-		reflect.Append(lhs, elems...)
+		s := reflect.Append(lhs, elems...)
+		lhs.Set(s)
 	case reflect.Map:
-		// TODO(naivary): finding and setting the value is pretty repetitive
-		// with the slice type. should find a better solution or outsource to
-		// another function.
 		if len(rhs) < 2 {
 			return fmt.Errorf("invalid rhs: map expects at least two rhs values. Got: %d", len(rhs))
 		}
-		keyType := lhs.Type().Key()
-		isKeyTypePtr := isPointer(keyType)
-		if isKeyTypePtr {
-			keyType = keyType.Elem()
-		}
-		valueType := lhs.Type().Elem()
-		isValueTypePtr := isPointer(valueType)
-		if isValueTypePtr {
-			valueType = valueType.Elem()
-		}
-		key := reflect.New(keyType)
-		value := reflect.New(valueType)
+		key, isKeyPtr := newVar(lhs.Type().Key())
+		value, isValuePtr := newVar(lhs.Type().Elem())
 		for i := 0; i < len(rhs); i += 2 {
 			err := assign(key, rhs[i])
 			if err != nil {
@@ -111,10 +109,10 @@ func assign(lhs reflect.Value, rhs ...string) error {
 				k = key
 				v = value
 			)
-			if !isKeyTypePtr {
+			if !isKeyPtr {
 				k = key.Elem()
 			}
-			if !isValueTypePtr {
+			if !isValuePtr {
 				v = value.Elem()
 			}
 			lhs.SetMapIndex(k, v)
@@ -125,6 +123,9 @@ func assign(lhs reflect.Value, rhs ...string) error {
 	return nil
 }
 
+// newVar returns a new reflect.Value based on the given reflect.Type and
+// assures that it is not a double pointer. If the original type was a pointer
+// it will be indicated by the second return value.
 func newVar(typ reflect.Type) (reflect.Value, bool) {
 	isPtr := isPointer(typ)
 	if isPtr {

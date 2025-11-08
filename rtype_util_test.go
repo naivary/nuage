@@ -31,18 +31,6 @@ func TestIsAssignable(t *testing.T) {
 			rhs:   []string{"12937812.3123"},
 		},
 		{
-			name:  "slice with ptr type",
-			valid: true,
-			lhs:   reflect.ValueOf([]*string{}),
-			rhs:   []string{"test"},
-		},
-		{
-			name:  "slice",
-			valid: true,
-			lhs:   reflect.ValueOf([]string{}),
-			rhs:   []string{"test"},
-		},
-		{
 			name:  "map",
 			valid: true,
 			lhs:   reflect.ValueOf(map[string]int{}),
@@ -59,6 +47,12 @@ func TestIsAssignable(t *testing.T) {
 			valid: true,
 			lhs:   reflect.ValueOf(map[string]*int{}),
 			rhs:   []string{"t1", "1", "t2", "2"},
+		},
+		{
+			name:  "slice",
+			valid: true,
+			lhs:   reflect.ValueOf(ptrTo([]string{})).Elem(),
+			rhs:   []string{"e1", "e2"},
 		},
 	}
 

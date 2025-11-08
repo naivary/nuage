@@ -22,9 +22,13 @@ const (
 	_tagKeyQuery  = "query"
 )
 
+const (
+	_defaultPathParamStyle = StyleSimple
+)
+
 type paramTagOpts struct {
 	Required   bool
-	Explode    *bool
+	Explode    bool
 	Name       string
 	Deprecated bool
 	Style      Style
@@ -50,7 +54,7 @@ func parseTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, erro
 		opts.Required = true
 	}
 	if slices.Contains(values, "explode") {
-		opts.Explode = ptrTo(true)
+		opts.Explode = true
 	}
 	styles := []Style{
 		StyleMatrix,
@@ -166,7 +170,7 @@ func newHeaderParam(opts *paramTagOpts) (*Parameter, error) {
 func newQueryParam(opts *paramTagOpts) (*Parameter, error) {
 	if opts.Style == "" {
 		opts.Style = StyleForm
-		opts.Explode = ptrTo(true)
+		opts.Explode = true
 	}
 	validStyles := []Style{StyleForm, StyleSpaceDelim, StylePipeDelim, StyleDeepObject}
 	if !slices.Contains(validStyles, opts.Style) {

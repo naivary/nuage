@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+	"strings"
 )
 
 func Decode[T any](r *http.Request, v *T) error {
@@ -31,10 +32,14 @@ func Decode[T any](r *http.Request, v *T) error {
 			switch tagKey {
 			case _tagKeyPath:
 				value = r.PathValue(opts.Name)
-				if value == "" {
+				if value == "" && opts.Required {
 					return fmt.Errorf("path parameter required: %s", opts.Name)
 				}
-				err := assign(rvalue.Field(i), value)
+				seriliazed, err := serializePathParam(value, rvalue.Field(i).Type(), opts.Style, opts.Explode)
+				if err != nil {
+					return err
+				}
+				err = assign(rvalue.Field(i), seriliazed...)
 				if err != nil {
 					return err
 				}
@@ -58,4 +63,38 @@ func Decode[T any](r *http.Request, v *T) error {
 		}
 	}
 	return nil
+	// return json.NewDecoder(r.Body).Decode(v)
+}
+
+func serializePathParam(v string, fieldType reflect.Type, style Style, explode bool) ([]string, error) {
+	if style == "" {
+		style = _defaultPathParamStyle
+	}
+	switch style {
+	case StyleSimple:
+		switch fieldType.Kind() {
+		case reflect.Slice:
+			return strings.Split(v, ","), nil
+		case reflect.Map:
+			if explode {
+				keyValuePairs := strings.Split(v, ",")
+				values := make([]string, 0, len(keyValuePairs)*2)
+				for _, pair := range keyValuePairs {
+					key, value, found := strings.Cut(pair, "=")
+					if !found {
+						return nil, fmt.Errorf("serialize path param: invalid syntax %s", v)
+					}
+					values = append(values, key, value)
+				}
+				return values, nil
+			}
+			return strings.Split(v, ","), nil
+		}
+		return []string{v}, nil
+	case StyleLabel:
+	case StyleMatrix:
+	default:
+		return nil, nil
+	}
+	return nil, fmt.Errorf("serialized path param: invalid style %s", style)
 }
