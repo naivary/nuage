@@ -125,6 +125,14 @@ func assign(lhs reflect.Value, rhs ...string) error {
 	return nil
 }
 
+func newVar(typ reflect.Type) (reflect.Value, bool) {
+	isPtr := isPointer(typ)
+	if isPtr {
+		typ = typ.Elem()
+	}
+	return reflect.New(typ), isPtr
+}
+
 func ptrTo[T any](v T) *T {
 	return &v
 }
