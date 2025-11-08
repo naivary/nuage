@@ -91,8 +91,11 @@ func assign(lhs reflect.Value, rhs ...string) error {
 		s := reflect.Append(lhs, elems...)
 		lhs.Set(s)
 	case reflect.Map:
-		if len(rhs) < 2 {
-			return fmt.Errorf("invalid rhs: map expects at least two rhs values. Got: %d", len(rhs))
+		if len(rhs)%2 != 0 {
+			return fmt.Errorf("assign: map expects at least two or an even number of rhs values. Got: %d", len(rhs))
+		}
+		if lhs.IsNil() {
+			lhs.Set(reflect.MakeMap(lhs.Type()))
 		}
 		key, isKeyPtr := newVar(lhs.Type().Key())
 		value, isValuePtr := newVar(lhs.Type().Elem())

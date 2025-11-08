@@ -1,11 +1,11 @@
 package nuage
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
-	"strings"
 )
 
 func Decode[T any](r *http.Request, v *T) error {
@@ -62,39 +62,8 @@ func Decode[T any](r *http.Request, v *T) error {
 			}
 		}
 	}
+	if r.Body != nil {
+		return json.NewDecoder(r.Body).Decode(v)
+	}
 	return nil
-	// return json.NewDecoder(r.Body).Decode(v)
-}
-
-func serializePathParam(v string, fieldType reflect.Type, style Style, explode bool) ([]string, error) {
-	if style == "" {
-		style = _defaultPathParamStyle
-	}
-	switch style {
-	case StyleSimple:
-		switch fieldType.Kind() {
-		case reflect.Slice:
-			return strings.Split(v, ","), nil
-		case reflect.Map:
-			if explode {
-				keyValuePairs := strings.Split(v, ",")
-				values := make([]string, 0, len(keyValuePairs)*2)
-				for _, pair := range keyValuePairs {
-					key, value, found := strings.Cut(pair, "=")
-					if !found {
-						return nil, fmt.Errorf("serialize path param: invalid syntax %s", v)
-					}
-					values = append(values, key, value)
-				}
-				return values, nil
-			}
-			return strings.Split(v, ","), nil
-		}
-		return []string{v}, nil
-	case StyleLabel:
-	case StyleMatrix:
-	default:
-		return nil, nil
-	}
-	return nil, fmt.Errorf("serialized path param: invalid style %s", style)
 }

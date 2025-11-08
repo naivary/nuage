@@ -1,15 +1,18 @@
 package nuage
 
 import (
-	"math"
 	"net/http"
-	"strconv"
 	"testing"
 )
 
 type pathParamsDecoder struct {
-	P1 int8     `path:"p1"`
-	P2 []string `path:"p2"`
+	PSimplePrimitive string            `path:"pSimplePrimitive"`
+	PSimpleArray     []string          `path:"pSimpleArray"`
+	PSimpleObject    map[string]string `path:"pSimpleObject"`
+
+	PLabelPrimitive string            `path:"pLabelPrimitive,Label"`
+	PLabelArray     []string          `path:"pLabelArray,Label"`
+	PLabelObject    map[string]string `path:"pLabelObject,Label"`
 }
 
 func TestDecode(t *testing.T) {
@@ -17,8 +20,14 @@ func TestDecode(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new request: %v", err)
 	}
-	r.SetPathValue("p1", strconv.FormatInt(math.MaxInt8, 10))
-	r.SetPathValue("p2", "v1,v2,v3")
+	r.SetPathValue("pSimplePrimitive", "test")
+	r.SetPathValue("pSimpleArray", "e1,e2,e3")
+	r.SetPathValue("pSimpleObject", "k1,v1,k2,v2")
+
+	r.SetPathValue("pLabelPrimitive", ".t")
+	r.SetPathValue("pLabelArray", ".e1,e2,e3")
+	r.SetPathValue("pLabelObject", ".k1,v1,k2,v2")
+
 	var input pathParamsDecoder
 	err = Decode(r, &input)
 	if err != nil {
