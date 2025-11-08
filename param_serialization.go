@@ -34,11 +34,10 @@ func serializePathParam(v string, fieldType reflect.Type, style Style, explode b
 			if explode {
 				sep = "."
 			}
-			values := strings.Split(v[1:], sep)
-			return values, nil
+			return strings.Split(v[1:], sep), nil
 		case reflect.Map:
 			if explode {
-				return pathParamKeyValuePairs(v, ".")
+				return pathParamKeyValuePairs(v[1:], ".")
 			}
 			return strings.Split(v[1:], ","), nil
 		}
