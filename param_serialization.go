@@ -51,7 +51,7 @@ func serializePathParam(v string, fieldType reflect.Type, style Style, explode b
 					return nil, err
 				}
 				values := make([]string, 0, len(pairs))
-				for i := 0; i < len(pairs); i += 2 {
+				for i := 1; i < len(pairs); i += 2 {
 					values = append(values, pairs[i])
 				}
 				return values, nil
@@ -71,7 +71,11 @@ func serializePathParam(v string, fieldType reflect.Type, style Style, explode b
 			}
 			return strings.Split(values[1], ","), nil
 		}
-		return pathParamKeyValuePairs(v[1:], "")
+		_, value, found := strings.Cut(v[1:], "=")
+		if !found {
+			return nil, fmt.Errorf("serialize path param: invalid syntax for primitive %s", v)
+		}
+		return []string{value}, nil
 	}
 	return nil, fmt.Errorf("serialized path param: invalid style %s", style)
 }

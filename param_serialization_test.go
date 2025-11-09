@@ -107,6 +107,51 @@ func TestSerializePathParam(t *testing.T) {
 			typ:      m,
 			expected: []string{"k1", "v1", "k2", "v2"},
 		},
+		{
+			name:     "matrix primitive",
+			v:        ";p1=t",
+			style:    StyleMatrix,
+			typ:      reflect.TypeFor[string](),
+			expected: []string{"t"},
+		},
+		{
+			name:     "matrix primitive explode",
+			v:        ";p1=t",
+			style:    StyleMatrix,
+			explode:  true,
+			typ:      reflect.TypeFor[string](),
+			expected: []string{"t"},
+		},
+		{
+			name:     "matrix array",
+			v:        ";p1=e1,e2,e3",
+			style:    StyleMatrix,
+			typ:      s,
+			expected: []string{"e1", "e2", "e3"},
+		},
+		{
+			name:     "matrix array explode",
+			v:        ";p1=e1;p2=e2;p3=e3",
+			style:    StyleMatrix,
+			explode:  true,
+			typ:      s,
+			expected: []string{"e1", "e2", "e3"},
+		},
+		{
+			name:     "matrix map",
+			v:        ";p1=k1,v1,k2,v2",
+			style:    StyleMatrix,
+			typ:      m,
+			expected: []string{"k1", "v1", "k2", "v2"},
+		},
+		{
+			name:     "matrix map explode",
+			v:        ";k1=v1;k2=v2",
+			style:    StyleMatrix,
+			explode:  true,
+			typ:      m,
+			expected: []string{"k1", "v1", "k2", "v2"},
+		},
 	}
 
 	for _, tc := range tests {
