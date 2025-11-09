@@ -2,6 +2,7 @@ package nuage
 
 import (
 	"fmt"
+	"net/url"
 	"reflect"
 	"strings"
 )
@@ -98,4 +99,13 @@ func pathParamKeyValuePairs(v, sep string) ([]string, error) {
 		values = append(values, key, value)
 	}
 	return values, nil
+}
+
+func serializeQueryParam(name string) ([]string, error) {
+	q, err := url.ParseQuery("/users?id=3,4,5")
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(q[name])
+	return nil, nil
 }

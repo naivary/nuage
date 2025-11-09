@@ -1,6 +1,7 @@
 package nuage
 
 import (
+	"fmt"
 	"reflect"
 	"slices"
 	"testing"
@@ -166,4 +167,9 @@ func TestSerializePathParam(t *testing.T) {
 			t.Logf("values: %v", values)
 		})
 	}
+}
+
+
+func TestSerializeQueryParam(t *testing.T) {
+	fmt.Println(serializeQueryParam("id"))
 }
