@@ -9,16 +9,17 @@ import (
 
 // serializePathParam is serializing the given value `v` based on the provided
 // OpenAPI Style.
-func serializePathParam(v string, fieldType reflect.Type, style Style, explode bool) ([]string, error) {
+func serializePathParam(v string, typ reflect.Type, style Style, explode bool) ([]string, error) {
 	if v == "" {
 		return []string{}, nil
 	}
 	if style == "" {
 		style = _defaultPathParamStyle
 	}
+	typ = deref(typ)
 	switch style {
 	case StyleSimple:
-		switch fieldType.Kind() {
+		switch typ.Kind() {
 		case reflect.Slice:
 			return strings.Split(v, ","), nil
 		case reflect.Map:
@@ -29,7 +30,7 @@ func serializePathParam(v string, fieldType reflect.Type, style Style, explode b
 		}
 		return []string{v}, nil
 	case StyleLabel:
-		switch fieldType.Kind() {
+		switch typ.Kind() {
 		case reflect.Slice:
 			sep := ","
 			if explode {
@@ -44,7 +45,7 @@ func serializePathParam(v string, fieldType reflect.Type, style Style, explode b
 		}
 		return []string{v[1:]}, nil
 	case StyleMatrix:
-		switch fieldType.Kind() {
+		switch typ.Kind() {
 		case reflect.Slice:
 			if explode {
 				pairs, err := pathParamKeyValuePairs(v[1:], ";")
@@ -101,11 +102,30 @@ func pathParamKeyValuePairs(v, sep string) ([]string, error) {
 	return values, nil
 }
 
-func serializeQueryParam(name string) ([]string, error) {
-	q, err := url.ParseQuery("/users?id=3,4,5")
-	if err != nil {
-		return nil, err
+type req struct {
+	m map[string]string `querykeys:"role,admin" query:"m"`
+}
+
+func serializeQueryParam(q url.Values, name []string, typ reflect.Type, style Style, explode bool) ([]string, error) {
+	fmt.Println(url.ParseQuery("role=admin&firstName=alex"))
+	typ = deref(typ)
+	switch style {
+	case StyleForm:
+		switch typ.Kind() {
+		case reflect.Map:
+			if explode {
+				values := make([]string, 0, len(name))
+				for _, n := range name {
+					values = append(values, n, q.Get(n))
+				}
+				return values, nil
+			}
+		default:
+			return q[name[0]], nil
+		}
+	case StyleSpaceDelim:
+	case StylePipeDelim:
+	case StyleDeepObject:
 	}
-	fmt.Println(q[name])
 	return nil, nil
 }

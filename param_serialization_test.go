@@ -171,5 +171,5 @@ func TestSerializePathParam(t *testing.T) {
 
 
 func TestSerializeQueryParam(t *testing.T) {
-	fmt.Println(serializeQueryParam("id"))
+	fmt.Println(serializeQueryParam(nil, []string{"role", "firstName"}, reflect.TypeFor[map[string]string](), "", true))
 }
