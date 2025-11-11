@@ -102,12 +102,11 @@ func pathParamKeyValuePairs(v, sep string) ([]string, error) {
 	return values, nil
 }
 
-type req struct {
-	m map[string]string `querykeys:"role,admin" query:"m"`
-}
-
 func serializeQueryParam(q url.Values, name []string, typ reflect.Type, style Style, explode bool) ([]string, error) {
-	fmt.Println(url.ParseQuery("role=admin&firstName=alex"))
+	q, err := url.ParseQuery("id[role]=admin&id[firstName]=alex")
+	if err != nil {
+		return nil, err
+	}
 	typ = deref(typ)
 	switch style {
 	case StyleForm:
@@ -124,8 +123,32 @@ func serializeQueryParam(q url.Values, name []string, typ reflect.Type, style St
 			return q[name[0]], nil
 		}
 	case StyleSpaceDelim:
+		if explode {
+			return q[name[0]], nil
+		}
+		value := q.Get(name[0])
+		return strings.Split(value, " "), nil
 	case StylePipeDelim:
+		if explode {
+			return q[name[0]], nil
+		}
+		value := q.Get(name[0])
+		return strings.Split(value, "|"), nil
 	case StyleDeepObject:
+		if !explode {
+			return nil, fmt.Errorf("serialize query param: deep object can only be used with explode=true")
+		}
+		values := make([]string, 0, len(q))
+		prefix := name[0]
+		for key := range q {
+			if !strings.HasPrefix(key, prefix) {
+				continue
+			}
+			keyDeepObj := strings.TrimPrefix(key, prefix)
+			keyDeepObj = keyDeepObj[1 : len(keyDeepObj)-1]
+			value := q.Get(key)
+			values = append(values, keyDeepObj, value)
+		}
 	}
 	return nil, nil
 }

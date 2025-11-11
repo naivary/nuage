@@ -6,85 +6,13 @@ import (
 	"net/http"
 	"reflect"
 	"slices"
-	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
-)
-
-var errTagNotFound = errors.New("tag not found")
-
-var _tagKeys = []string{_tagKeyPath, _tagKeyHeader, _tagKeyQuery, _tagKeyCookie}
-
-const (
-	_tagKeyHeader = "header"
-	_tagKeyCookie = "cookie"
-	_tagKeyPath   = "path"
-	_tagKeyQuery  = "query"
 )
 
 const (
 	_defaultPathParamStyle = StyleSimple
 )
-
-type paramTagOpts struct {
-	Required   bool
-	Explode    bool
-	Name       string
-	Deprecated bool
-	Style      Style
-	Example    any
-}
-
-func parseTagOpts(tagKey string, field reflect.StructField) (*paramTagOpts, error) {
-	opts := paramTagOpts{}
-	tagValue, ok := field.Tag.Lookup(tagKey)
-	if !ok {
-		return nil, errTagNotFound
-	}
-	values := strings.Split(tagValue, ",")
-	if len(values) == 0 {
-		return nil, fmt.Errorf("empty tag(%s) for %v", tagKey, field)
-	}
-	// first element of the tag is always the name
-	opts.Name = values[0]
-	if slices.Contains(values, "deprecated") {
-		opts.Deprecated = true
-	}
-	if slices.Contains(values, "required") {
-		opts.Required = true
-	}
-	if slices.Contains(values, "explode") {
-		opts.Explode = true
-	}
-	styles := []Style{
-		StyleMatrix,
-		StyleLabel,
-		StyleSimple,
-		StyleForm,
-		StyleSpaceDelim,
-		StylePipeDelim,
-		StyleDeepObject,
-		StyleCookie,
-	}
-	for _, style := range styles {
-		if slices.Contains(values, style.String()) {
-			opts.Style = style
-			break
-		}
-	}
-	// example option
-	for _, value := range values {
-		k, v, found := strings.Cut(value, "=")
-		if !found {
-			continue
-		}
-		switch k {
-		case "example":
-			opts.Example = v
-		}
-	}
-	return &opts, nil
-}
 
 func paramsFor[I any]() ([]*Parameter, error) {
 	s := reflect.TypeFor[I]()
@@ -176,6 +104,9 @@ func newQueryParam(opts *paramTagOpts) (*Parameter, error) {
 	if !slices.Contains(validStyles, opts.Style) {
 		return nil, fmt.Errorf("invalid style: %s. Valid styles are: %v", opts.Style, validStyles)
 	}
+	if opts.Style == StyleDeepObject {
+		opts.Explode = true
+	}
 	return &Parameter{
 		ParamIn:    ParamInQuery,
 		Name:       opts.Name,
@@ -183,7 +114,7 @@ func newQueryParam(opts *paramTagOpts) (*Parameter, error) {
 		Style:      opts.Style,
 		Required:   opts.Required,
 		Example:    opts.Example,
-		Explode:    true,
+		Explode:    opts.Explode,
 	}, nil
 }
 
