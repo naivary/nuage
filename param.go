@@ -19,12 +19,12 @@ func paramsFor[I any]() ([]*Parameter, error) {
 	params := make([]*Parameter, 0, s.NumField())
 	for i := range s.NumField() {
 		field := s.Field(i)
-		schema, err := jsonschema.ForType(field.Type, &jsonschema.ForOptions{})
+		schema, err := jsonschema.ForType(field.Type, nil)
 		if err != nil {
 			return nil, err
 		}
 		for _, tagKey := range _tagKeys {
-			opts, err := parseTagOpts(tagKey, field)
+			opts, err := parseParamTagOpts(tagKey, field)
 			if errors.Is(err, errTagNotFound) {
 				continue
 			}
@@ -72,6 +72,7 @@ func newPathParam(opts *paramTagOpts) (*Parameter, error) {
 		Name:       opts.Name,
 		Deprecated: opts.Deprecated,
 		Style:      opts.Style,
+		Explode:    opts.Explode,
 		// Path Parameters are always required.
 		Required: true,
 		Example:  opts.Example,

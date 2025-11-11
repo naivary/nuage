@@ -20,7 +20,7 @@ func Decode[T any](r *http.Request, v *T) error {
 			continue
 		}
 		for _, tagKey := range _tagKeys {
-			opts, err := parseTagOpts(tagKey, field)
+			opts, err := parseParamTagOpts(tagKey, field)
 			if errors.Is(err, errTagNotFound) {
 				continue
 			}
