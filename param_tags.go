@@ -13,11 +13,20 @@ var errTagNotFound = errors.New("tag not found")
 var _tagKeys = []string{_tagKeyPath, _tagKeyHeader, _tagKeyQuery, _tagKeyCookie}
 
 const (
-	_tagKeyHeader     = "header"
-	_tagKeyCookie     = "cookie"
-	_tagKeyPath       = "path"
-	_tagKeyQuery      = "query"
-	_tagKeyQueryKeys  = "querykeys"
+	// query params
+	_tagKeyQuery     = "query"
+	_tagKeyQueryKeys = "querykeys"
+
+	// header
+	_tagKeyHeader = "header"
+
+	// cookie
+	_tagKeyCookie = "cookie"
+
+	// path
+	_tagKeyPath = "path"
+
+	// agnostic
 	_tagKeyParamStyle = "paramstyle"
 )
 

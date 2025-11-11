@@ -52,7 +52,7 @@ func paramsFor[I any]() ([]*Parameter, error) {
 			param.Schema = schema
 			params = append(params, param)
 
-			// only one parameter type is allowed per field.
+			// one field can only be one type of parameter.
 			break
 		}
 	}
