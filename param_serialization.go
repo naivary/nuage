@@ -7,8 +7,6 @@ import (
 	"strings"
 )
 
-// serializePathParam is serializing the given value `v` based on the provided
-// OpenAPI Style.
 func serializePathParam(v string, typ reflect.Type, style Style, explode bool) ([]string, error) {
 	if v == "" {
 		return []string{}, nil
@@ -16,70 +14,82 @@ func serializePathParam(v string, typ reflect.Type, style Style, explode bool) (
 	if style == "" {
 		style = _defaultPathParamStyle
 	}
-	typ = deref(typ)
+	kind := deref(typ).Kind()
 	switch style {
 	case StyleSimple:
-		switch typ.Kind() {
-		case reflect.Slice:
-			return strings.Split(v, ","), nil
-		case reflect.Map:
-			if explode {
-				return pathParamKeyValuePairs(v, ",")
-			}
-			return strings.Split(v, ","), nil
-		}
-		return []string{v}, nil
+		return serializePathParamStyleSimple(v, kind, explode)
 	case StyleLabel:
-		switch typ.Kind() {
-		case reflect.Slice:
-			sep := ","
-			if explode {
-				sep = "."
-			}
-			return strings.Split(v[1:], sep), nil
-		case reflect.Map:
-			if explode {
-				return pathParamKeyValuePairs(v[1:], ".")
-			}
-			return strings.Split(v[1:], ","), nil
-		}
-		return []string{v[1:]}, nil
+		return serializePathParamStyleLabel(v, kind, explode)
 	case StyleMatrix:
-		switch typ.Kind() {
-		case reflect.Slice:
-			if explode {
-				pairs, err := pathParamKeyValuePairs(v[1:], ";")
-				if err != nil {
-					return nil, err
-				}
-				values := make([]string, 0, len(pairs))
-				for i := 1; i < len(pairs); i += 2 {
-					values = append(values, pairs[i])
-				}
-				return values, nil
-			}
-			values := strings.Split(v, "=")
-			if len(values) != 2 {
-				return nil, fmt.Errorf("serialize path param: invalid syntax for matrix style %s", v)
-			}
-			return strings.Split(values[1], ","), nil
-		case reflect.Map:
-			if explode {
-				return pathParamKeyValuePairs(v[1:], ";")
-			}
-			values := strings.Split(v, "=")
-			if len(values) != 2 {
-				return nil, fmt.Errorf("serialize path param: invalid syntax for matrix style %s", v)
-			}
-			return strings.Split(values[1], ","), nil
-		}
-		_, value, found := strings.Cut(v[1:], "=")
-		if !found {
-			return nil, fmt.Errorf("serialize path param: invalid syntax for primitive %s", v)
-		}
-		return []string{value}, nil
+		return serializePathParamStyleMatrix(v, kind, explode)
 	}
 	return nil, fmt.Errorf("serialized path param: invalid style %s", style)
+}
+
+func serializePathParamStyleSimple(v string, kind reflect.Kind, explode bool) ([]string, error) {
+	switch kind {
+	case reflect.Slice:
+		return strings.Split(v, ","), nil
+	case reflect.Map:
+		if explode {
+			return pathParamKeyValuePairs(v, ",")
+		}
+		return strings.Split(v, ","), nil
+	}
+	return []string{v}, nil
+}
+
+func serializePathParamStyleLabel(v string, kind reflect.Kind, explode bool) ([]string, error) {
+	switch kind {
+	case reflect.Slice:
+		sep := ","
+		if explode {
+			sep = "."
+		}
+		return strings.Split(v[1:], sep), nil
+	case reflect.Map:
+		if explode {
+			return pathParamKeyValuePairs(v[1:], ".")
+		}
+		return strings.Split(v[1:], ","), nil
+	}
+	return []string{v[1:]}, nil
+}
+
+func serializePathParamStyleMatrix(v string, kind reflect.Kind, explode bool) ([]string, error) {
+	switch kind {
+	case reflect.Slice:
+		if explode {
+			pairs, err := pathParamKeyValuePairs(v[1:], ";")
+			if err != nil {
+				return nil, err
+			}
+			values := make([]string, 0, len(pairs))
+			for i := 1; i < len(pairs); i += 2 {
+				values = append(values, pairs[i])
+			}
+			return values, nil
+		}
+		values := strings.Split(v, "=")
+		if len(values) != 2 {
+			return nil, fmt.Errorf("serialize path param: invalid syntax for matrix style %s", v)
+		}
+		return strings.Split(values[1], ","), nil
+	case reflect.Map:
+		if explode {
+			return pathParamKeyValuePairs(v[1:], ";")
+		}
+		values := strings.Split(v, "=")
+		if len(values) != 2 {
+			return nil, fmt.Errorf("serialize path param: invalid syntax for matrix style %s", v)
+		}
+		return strings.Split(values[1], ","), nil
+	}
+	_, value, found := strings.Cut(v[1:], "=")
+	if !found {
+		return nil, fmt.Errorf("serialize path param: invalid syntax for primitive %s", v)
+	}
+	return []string{value}, nil
 }
 
 // pathParamKeyValuePairs parses a string containing key-value pairs separated by a given separator.
@@ -103,10 +113,6 @@ func pathParamKeyValuePairs(v, sep string) ([]string, error) {
 }
 
 func serializeQueryParam(q url.Values, name []string, typ reflect.Type, style Style, explode bool) ([]string, error) {
-	q, err := url.ParseQuery("id[role]=admin&id[firstName]=alex")
-	if err != nil {
-		return nil, err
-	}
 	typ = deref(typ)
 	switch style {
 	case StyleForm:
