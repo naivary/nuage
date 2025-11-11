@@ -10,16 +10,12 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
-const (
-	_defaultPathParamStyle = StyleSimple
-)
-
 func paramsFor[I any]() ([]*Parameter, error) {
 	s := reflect.TypeFor[I]()
 	params := make([]*Parameter, 0, s.NumField())
 	for i := range s.NumField() {
 		field := s.Field(i)
-		schema, err := jsonschema.ForType(field.Type, nil)
+		schema, err := jsonschema.ForType(field.Type, &jsonschema.ForOptions{})
 		if err != nil {
 			return nil, err
 		}

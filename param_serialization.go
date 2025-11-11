@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+const (
+	_defaultPathParamStyle  = StyleSimple
+	_defaultQueryParamStyle = StyleForm
+)
+
 func serializePathParam(v string, typ reflect.Type, style Style, explode bool) ([]string, error) {
 	if v == "" {
 		return []string{}, nil
@@ -112,49 +117,57 @@ func pathParamKeyValuePairs(v, sep string) ([]string, error) {
 	return values, nil
 }
 
-func serializeQueryParam(q url.Values, name []string, typ reflect.Type, style Style, explode bool) ([]string, error) {
+func serializeQueryParam(q url.Values, name string, keys []string, typ reflect.Type, style Style, explode bool) ([]string, error) {
+	if style == "" {
+		style = _defaultQueryParamStyle
+	}
+
 	typ = deref(typ)
 	switch style {
 	case StyleForm:
-		switch typ.Kind() {
-		case reflect.Map:
-			if explode {
-				values := make([]string, 0, len(name))
-				for _, n := range name {
-					values = append(values, n, q.Get(n))
-				}
-				return values, nil
-			}
-		default:
-			return q[name[0]], nil
-		}
+		return serializeQueryParamStyleForm(q, name, keys, typ.Kind(), explode)
 	case StyleSpaceDelim:
 		if explode {
-			return q[name[0]], nil
+			return q[name], nil
 		}
-		value := q.Get(name[0])
+		value := q.Get(name)
 		return strings.Split(value, " "), nil
 	case StylePipeDelim:
 		if explode {
-			return q[name[0]], nil
+			return q[name], nil
 		}
-		value := q.Get(name[0])
+		value := q.Get(name)
 		return strings.Split(value, "|"), nil
 	case StyleDeepObject:
 		if !explode {
 			return nil, fmt.Errorf("serialize query param: deep object can only be used with explode=true")
 		}
 		values := make([]string, 0, len(q))
-		prefix := name[0]
 		for key := range q {
-			if !strings.HasPrefix(key, prefix) {
+			if !strings.HasPrefix(key, name) {
 				continue
 			}
-			keyDeepObj := strings.TrimPrefix(key, prefix)
+			keyDeepObj := strings.TrimPrefix(key, name)
 			keyDeepObj = keyDeepObj[1 : len(keyDeepObj)-1]
 			value := q.Get(key)
 			values = append(values, keyDeepObj, value)
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("invalid style: style is not supported for query parameter %s", style)
+}
+
+func serializeQueryParamStyleForm(q url.Values, name string, keys []string, kind reflect.Kind, explode bool) ([]string, error) {
+	switch kind {
+	case reflect.Map:
+		if !explode {
+			break
+		}
+		values := make([]string, 0, len(name))
+		for _, key := range keys {
+			value := q.Get(key)
+			values = append(values, key, value)
+		}
+		return values, nil
+	}
+	return q[name], nil
 }
