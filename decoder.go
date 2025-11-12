@@ -35,7 +35,7 @@ func Decode[T any](r *http.Request, v *T) error {
 				if value == "" && opts.Required {
 					return fmt.Errorf("path parameter required: %s", opts.Name)
 				}
-				seriliazed, err := serializePathParam(value, rvalue.Field(i).Type(), opts.Style, opts.Explode)
+				seriliazed, err := SerializePathParam(value, rvalue.Field(i).Type(), opts.Style, opts.Explode)
 				if err != nil {
 					return err
 				}

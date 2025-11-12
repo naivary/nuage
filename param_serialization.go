@@ -2,6 +2,7 @@ package nuage
 
 import (
 	"fmt"
+	"net/http"
 	"net/url"
 	"reflect"
 	"strings"
@@ -12,7 +13,7 @@ const (
 	_defaultQueryParamStyle = StyleForm
 )
 
-func serializePathParam(v string, typ reflect.Type, style Style, explode bool) ([]string, error) {
+func SerializePathParam(v string, typ reflect.Type, style Style, explode bool) ([]string, error) {
 	if v == "" {
 		return []string{}, nil
 	}
@@ -117,7 +118,7 @@ func pathParamKeyValuePairs(v, sep string) ([]string, error) {
 	return values, nil
 }
 
-func serializeQueryParam(q url.Values, name string, keys []string, typ reflect.Type, style Style, explode bool) ([]string, error) {
+func SerializeQueryParam(q url.Values, name string, keys []string, typ reflect.Type, style Style, explode bool) ([]string, error) {
 	if style == "" {
 		style = _defaultQueryParamStyle
 	}
@@ -153,7 +154,7 @@ func serializeQueryParam(q url.Values, name string, keys []string, typ reflect.T
 			values = append(values, keyDeepObj, value)
 		}
 	}
-	return nil, fmt.Errorf("invalid style: style is not supported for query parameter %s", style)
+	return nil, fmt.Errorf("invalid style: %s", style)
 }
 
 func serializeQueryParamStyleForm(q url.Values, name string, keys []string, kind reflect.Kind, explode bool) ([]string, error) {
@@ -170,4 +171,34 @@ func serializeQueryParamStyleForm(q url.Values, name string, keys []string, kind
 		return values, nil
 	}
 	return q[name], nil
+}
+
+func SerializeHeaderParam(header http.Header, key string, typ reflect.Type, style Style, explode bool) ([]string, error) {
+	if style != StyleSimple {
+		return nil, fmt.Errorf("invalid style: %s", style)
+	}
+	typ = deref(typ)
+	switch typ.Kind() {
+	case reflect.Map:
+		value := header.Get(key)
+		if explode {
+			return pathParamKeyValuePairs(value, ",")
+		}
+	default:
+		value := header.Get(key)
+		return strings.Split(value, ","), nil
+	}
+	return nil, fmt.Errorf("invalid kind: %v", typ.Kind())
+}
+
+func SerializeCookieParam(cookie *http.Cookie, typ reflect.Type, style Style, explode bool) ([]string, error) {
+	if style != StyleForm {
+		return nil, fmt.Errorf("invalid style: %s", style)
+	}
+	typ = deref(typ)
+	kind := typ.Kind()
+	if (kind == reflect.Slice || kind == reflect.Map) && explode {
+		return nil, fmt.Errorf("cannot serialize exploded cookie parameter into slice or map")
+	}
+	return strings.Split(cookie.Value, ","), nil
 }
