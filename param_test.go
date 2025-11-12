@@ -6,10 +6,13 @@ import (
 )
 
 type paramsTestType struct {
-	P1 string `path:"p1"`
-	H1 string `header:"X-H1"`
-	Q1 string `query:"q1"`
-	C1 string `cookie:"c1"`
+	P1 string `path:"p1" json:"-"`
+
+	H1 string `header:"X-H1" json:"-"`
+
+	Q1 string `query:"q1" json:"-"`
+
+	C1 string `cookie:"c1" json:"-"`
 }
 
 func TestParamsFor(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 )
 
 type paramTagOptsTest struct {
-	Q1 string `query:"q1,explode,deprecated,required" paramexample:"e1" paramstyle:"DeepObject"`
+	Q1 string `query:"q1,explode,deprecated,required" paramexample:"e1" paramstyle:"DeepObject" json:"-"`
 }
 
 func TestParseParamTagOpts(t *testing.T) {

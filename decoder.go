@@ -14,9 +14,11 @@ func Decode[T any](r *http.Request, v *T) error {
 	if !isStruct[T]() {
 		return fmt.Errorf("type must be a struct: %v", rtype)
 	}
+	// decode parameters
 	for i := range rtype.NumField() {
 		field := rtype.Field(i)
 		if !field.IsExported() {
+			// unexported fields will be ignored for decoding
 			continue
 		}
 		for _, tagKey := range _tagKeys {
@@ -28,42 +30,36 @@ func Decode[T any](r *http.Request, v *T) error {
 				return err
 			}
 
-			var value string
+			fieldValue := rvalue.Field(i)
+			var rhs []string
 			switch tagKey {
 			case _tagKeyPath:
-				value = r.PathValue(opts.Name)
-				if value == "" && opts.Required {
-					return fmt.Errorf("path parameter required: %s", opts.Name)
+				slug := r.PathValue(opts.Name)
+				if slug == "" && opts.Required {
+					return fmt.Errorf("decode: missing required path param %v", opts.Name)
 				}
-				seriliazed, err := SerializePathParam(value, rvalue.Field(i).Type(), opts.Style, opts.Explode)
-				if err != nil {
-					return err
-				}
-				err = assign(rvalue.Field(i), seriliazed...)
-				if err != nil {
-					return err
-				}
-			case _tagKeyHeader:
-				value = r.Header.Get(opts.Name)
-				if value == "" && opts.Required {
-					return fmt.Errorf("header required: %s", opts.Name)
-				}
+				rhs, err = SerializePathParam(slug, field.Type, opts.Style, opts.Explode)
 			case _tagKeyQuery:
-				value = r.URL.Query().Get(opts.Name)
-				if value == "" && opts.Required {
-					return fmt.Errorf("query required: %s", opts.Name)
-				}
+				rhs, err = SerializeQueryParam(r.URL.Query(), opts.Name, opts.QueryKeys, field.Type, opts.Style, opts.Explode)
+			case _tagKeyHeader:
+				rhs, err = SerializeHeaderParam(r.Header, opts.Name, field.Type, opts.Style, opts.Explode)
 			case _tagKeyCookie:
-				c, err := r.Cookie(opts.Name)
-				if errors.Is(err, http.ErrNoCookie) && opts.Required {
-					return fmt.Errorf("cookie required: %s", opts.Name)
-				}
-				value = c.Value
+				rhs, err = SerializeHeaderParam(r.Header, opts.Name, field.Type, opts.Style, opts.Explode)
 			}
+			if err != nil {
+				return err
+			}
+			err = assign(fieldValue, rhs...)
+			if err != nil {
+				return err
+			}
+			// one field can only be one type of parameter.
+			break
 		}
 	}
-	if r.Body != nil {
-		return json.NewDecoder(r.Body).Decode(v)
+	// decode payload
+	if r.Body == nil {
+		return nil
 	}
-	return nil
+	return json.NewDecoder(r.Body).Decode(v)
 }

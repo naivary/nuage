@@ -50,6 +50,16 @@ func parseParamTagOpts(paramTagKey string, field reflect.StructField) (*paramTag
 	if !ok {
 		return nil, errTagNotFound
 	}
+	jsonTagValue, ok := field.Tag.Lookup("json")
+	if !ok {
+		return nil, fmt.Errorf(
+			`parse paramn tag opts: make sure that if you are tagging a struct field to be decoded from parameters it is also excluded from json payloads e.g. json:"-"`,
+		)
+	}
+	if jsonTagValue != "-" {
+		return nil, fmt.Errorf("parse param tag opts: only tag option for json is '-' for a parameter tagged struct field")
+	}
+
 	values := strings.Split(paramTagValue, ",")
 	if len(values) == 0 {
 		return nil, fmt.Errorf("empty tag (%s in %v): need at least one name value", paramTagKey, field)
@@ -83,6 +93,5 @@ func parseParamTagOpts(paramTagKey string, field reflect.StructField) (*paramTag
 		return nil, fmt.Errorf("querykeys tag cannot be empty: %v", field)
 	}
 	opts.QueryKeys = strings.Split(queryKeys, ",")
-
 	return &opts, nil
 }

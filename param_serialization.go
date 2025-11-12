@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/url"
 	"reflect"
+	"slices"
 	"strings"
 )
 
@@ -127,6 +128,8 @@ func SerializeQueryParam(q url.Values, name string, keys []string, typ reflect.T
 	switch style {
 	case StyleForm:
 		return serializeQueryParamStyleForm(q, name, keys, typ.Kind(), explode)
+	case StyleDeepObject:
+		return serializeQueryParamStyleDeepObject(q, name, keys, typ.Kind(), explode)
 	case StyleSpaceDelim:
 		if explode {
 			return q[name], nil
@@ -139,20 +142,6 @@ func SerializeQueryParam(q url.Values, name string, keys []string, typ reflect.T
 		}
 		value := q.Get(name)
 		return strings.Split(value, "|"), nil
-	case StyleDeepObject:
-		if !explode {
-			return nil, fmt.Errorf("serialize query param: deep object can only be used with explode=true")
-		}
-		values := make([]string, 0, len(q))
-		for key := range q {
-			if !strings.HasPrefix(key, name) {
-				continue
-			}
-			keyDeepObj := strings.TrimPrefix(key, name)
-			keyDeepObj = keyDeepObj[1 : len(keyDeepObj)-1]
-			value := q.Get(key)
-			values = append(values, keyDeepObj, value)
-		}
 	}
 	return nil, fmt.Errorf("invalid style: %s", style)
 }
@@ -171,6 +160,30 @@ func serializeQueryParamStyleForm(q url.Values, name string, keys []string, kind
 		return values, nil
 	}
 	return q[name], nil
+}
+
+func serializeQueryParamStyleDeepObject(q url.Values, name string, keys []string, kind reflect.Kind, explode bool) ([]string, error) {
+	if !explode {
+		return nil, fmt.Errorf("serialize query param: deep object can only be used with explode=true")
+	}
+	if kind != reflect.Map {
+		return nil, fmt.Errorf("invalid kind: kind has to be map for a parameter type of DeepObject")
+	}
+	values := make([]string, 0, len(q))
+	for key := range q {
+		if !strings.HasPrefix(key, name) {
+			continue
+		}
+		keyDeepObj := strings.TrimPrefix(key, name)
+		keyDeepObj = keyDeepObj[1 : len(keyDeepObj)-1]
+		if !slices.Contains(keys, keyDeepObj) && len(keys) > 0 {
+			// unknown keys will be skipped
+			continue
+		}
+		value := q.Get(key)
+		values = append(values, keyDeepObj, value)
+	}
+	return values, nil
 }
 
 func SerializeHeaderParam(header http.Header, key string, typ reflect.Type, style Style, explode bool) ([]string, error) {
