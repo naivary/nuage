@@ -9,7 +9,7 @@ type HandlerFuncErr[I, O any] func(r *http.Request, w http.ResponseWriter, input
 
 func (h HandlerFuncErr[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var input I
-	err := json.NewDecoder(r.Body).Decode(&input)
+	err := Decode(r, &input)
 	if err != nil {
 	}
 
