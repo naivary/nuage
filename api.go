@@ -31,7 +31,7 @@ func Handle[I, O any](api *api, operation *Operation, handler HandlerFuncErr[I, 
 	if !found {
 		return fmt.Errorf("invalid pattern syntax: %s", operation.Pattern)
 	}
-	params, err := paramsFor[I]()
+	params, err := ParamSpecsFor[I]()
 	if err != nil {
 		return err
 	}

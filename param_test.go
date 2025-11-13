@@ -16,7 +16,7 @@ type paramsTestType struct {
 }
 
 func TestParamsFor(t *testing.T) {
-	params, err := paramsFor[paramsTestType]()
+	params, err := ParamSpecsFor[paramsTestType]()
 	if err != nil {
 		t.Fatalf("params for: %v", err)
 	}

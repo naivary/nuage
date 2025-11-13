@@ -10,7 +10,26 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
-func paramsFor[I any]() ([]*Parameter, error) {
+// ParamSpecsFor generates a list of OpenAPI parameter specifications for a given
+// Go struct type `I`. It inspects the struct fields tags and derives parameter definitions
+// based on recognized struct tags (such as `path`, `query`, `header`, or `cookie`).
+//
+// Each struct field can define at most one parameter type through its tag. The
+// function automatically infers the JSON Schema for the field’s Go type and
+// attaches it to the resulting parameter definition.
+//
+// Example usage:
+//
+//	type GetUserInput struct {
+//	    UserID string `path:"user_id" json:"-"`
+//	    Filter string `query:"filter,omitempty" json:"-"`
+//	}
+//
+//	params, err := ParamSpecsFor[GetUserInput]()
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+func ParamSpecsFor[I any]() ([]*Parameter, error) {
 	s := reflect.TypeFor[I]()
 	params := make([]*Parameter, 0, s.NumField())
 	for i := range s.NumField() {
