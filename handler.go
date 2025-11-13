@@ -36,7 +36,3 @@ func (h HandlerFuncErr[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 	}
 }
-
-func handleInput[I any](ctx context.Context, input *I) error {
-	return nil
-}
