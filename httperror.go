@@ -23,12 +23,12 @@ type httpError interface {
 	// isHTTPError is a non-exported sentinel method that ensures this
 	// interface can only be satisfied by types within this package,
 	// preventing external packages from implementing it inadvertently.
-	isHTTPError() bool
+	isHTTPError()
 }
 
-// HTTPErrorContentType defines the standard media type used for representing HTTP API error
+// ContentTypeHTTPError defines the standard media type used for representing HTTP API error
 // responses in JSON format, as specified in RFC 9457: Problem Details for HTTP APIs.
-const HTTPErrorContentType = "application/problem+json"
+const ContentTypeHTTPError = "application/problem+json"
 
 var _ httpError = (*HTTPError[any, any])(nil)
 
@@ -90,6 +90,4 @@ func (h *HTTPError[T, E]) MarshalJSON() ([]byte, error) {
 	return json.Marshal(&m)
 }
 
-func (h *HTTPError[T, E]) isHTTPError() bool {
-	return true
-}
+func (h *HTTPError[T, E]) isHTTPError() {}

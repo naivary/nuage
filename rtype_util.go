@@ -136,6 +136,13 @@ func deref(rtype reflect.Type) reflect.Type {
 	return rtype
 }
 
+func derefValue(rvalue reflect.Value) reflect.Value {
+	if isPointer(rvalue.Type()) {
+		rvalue = rvalue.Elem()
+	}
+	return rvalue
+}
+
 func isPointer(rtype reflect.Type) bool {
 	return rtype.Kind() == reflect.Pointer
 }

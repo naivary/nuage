@@ -5,12 +5,16 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+
+	"github.com/google/jsonschema-go/jsonschema"
 )
 
 type api struct {
 	openAPI *OpenAPI
 
 	mux *http.ServeMux
+
+	jsonSchemasReg map[string]*jsonschema.Schema
 }
 
 func NewAPI(root *OpenAPI) *api {
