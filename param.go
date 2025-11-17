@@ -35,7 +35,11 @@ func paramSpecsFor[I any]() ([]*openapi.Parameter, error) {
 	if err != nil {
 		return nil, err
 	}
+	// TODO: is the schema correct for the cookie type?
 	for _, field := range fields {
+		if !field.IsExported() || field.Anonymous {
+			continue
+		}
 		schema, err := jsonschema.ForType(field.Type, &jsonschema.ForOptions{})
 		if err != nil {
 			return nil, err

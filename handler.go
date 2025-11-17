@@ -14,6 +14,29 @@ type endpoint[I, O any] struct {
 }
 
 func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	err := e.validateParams(r)
+	if err != nil {
+		return
+	}
+}
+
+func (e endpoint[I, O]) validateParams(r *http.Request) error {
+	for _, param := range e.doc.Parameters {
+		var value string
+		switch param.ParamIn {
+		case openapi.ParamInHeader:
+			value = r.Header.Get(param.Name)
+		}
+		resolver, err := param.Schema.Resolve(nil)
+		if err != nil {
+			return err
+		}
+		err = resolver.Validate(value)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // TODO: remove http.ResponseWriter from this

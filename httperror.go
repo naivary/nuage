@@ -5,6 +5,8 @@ import (
 	"fmt"
 )
 
+var ErrParamValidationFailed = HTTPError[string, string]{}
+
 // httpError is a private, unexported interface implemented by custom
 // error types that represent an HTTP-related failure.
 //
