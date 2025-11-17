@@ -158,7 +158,7 @@ func TestSerializePathParam(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			values, err := SerializePathParam(tc.v, tc.typ, tc.style, tc.explode)
+			values, err := serializePathParam(tc.v, tc.typ, tc.style, tc.explode)
 			if err != nil {
 				t.Fatalf("err: %v", err)
 			}

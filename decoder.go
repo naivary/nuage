@@ -37,13 +37,13 @@ func decode[T any](r *http.Request, v *T) error {
 			if slug == "" && opts.required {
 				return fmt.Errorf("decode: missing required path param %v", opts.name)
 			}
-			rhs, err = SerializePathParam(slug, field.Type, opts.style, opts.explode)
+			rhs, err = serializePathParam(slug, field.Type, opts.style, opts.explode)
 		case _tagKeyQuery:
-			rhs, err = SerializeQueryParam(r.URL.Query(), opts.name, opts.queryKeys, field.Type, opts.style, opts.explode)
+			rhs, err = serializeQueryParam(r.URL.Query(), opts.name, opts.queryKeys, field.Type, opts.style, opts.explode)
 		case _tagKeyHeader:
-			rhs, err = SerializeHeaderParam(r.Header, opts.name, field.Type, opts.style, opts.explode)
+			rhs, err = serializeHeaderParam(r.Header, opts.name, field.Type, opts.style, opts.explode)
 		case _tagKeyCookie:
-			rhs, err = SerializeHeaderParam(r.Header, opts.name, field.Type, opts.style, opts.explode)
+			rhs, err = serializeHeaderParam(r.Header, opts.name, field.Type, opts.style, opts.explode)
 		}
 		if err != nil {
 			return err

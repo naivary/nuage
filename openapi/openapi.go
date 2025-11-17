@@ -41,21 +41,6 @@ type PathItem struct {
 	Query       *Operation `json:"query,omitempty"`
 }
 
-type Operation struct {
-	// Tags associated with this operation
-	Tags        []string              `json:"tags,omitempty"`
-	Summary     string                `json:"summary,omitempty"`
-	Description string                `json:"description,omitempty"`
-	OperationID string                `json:"operationId,omitempty"`
-	Deprecated  bool                  `json:"deprecated,omitempty"`
-	Security    []SecurityRequirement `json:"security,omitempty"`
-	Pattern     string                `json:"-"`
-
-	Parameters  []*Parameter         `json:"parameters,omitempty"`
-	RequestBody *RequestBody         `json:"requestBody,omitempty"`
-	Responses   map[string]*Response `json:"responses"`
-}
-
 type RequestBody struct {
 	Description string                `json:"description,omitempty"`
 	Required    bool                  `json:"required"`

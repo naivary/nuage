@@ -11,7 +11,7 @@ import (
 	"github.com/naivary/nuage/openapi"
 )
 
-func SerializePathParam(v string, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
+func serializePathParam(v string, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
 	if v == "" {
 		return []string{}, nil
 	}
@@ -116,7 +116,7 @@ func pathParamKeyValuePairs(v, sep string) ([]string, error) {
 	return values, nil
 }
 
-func SerializeQueryParam(q url.Values, name string, keys []string, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
+func serializeQueryParam(q url.Values, name string, keys []string, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
 	if style == "" {
 		style = openapi.StyleForm
 	}
@@ -183,7 +183,7 @@ func serializeQueryParamStyleDeepObject(q url.Values, name string, keys []string
 	return values, nil
 }
 
-func SerializeHeaderParam(header http.Header, key string, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
+func serializeHeaderParam(header http.Header, key string, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
 	if style != openapi.StyleSimple {
 		return nil, fmt.Errorf("invalid style: %s", style)
 	}
@@ -201,7 +201,7 @@ func SerializeHeaderParam(header http.Header, key string, typ reflect.Type, styl
 	return nil, fmt.Errorf("invalid kind: %v", typ.Kind())
 }
 
-func SerializeCookieParam(cookie *http.Cookie, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
+func serializeCookieParam(cookie *http.Cookie, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
 	if style != openapi.StyleForm {
 		return nil, fmt.Errorf("invalid style: %s", style)
 	}
