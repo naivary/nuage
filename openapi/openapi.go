@@ -1,5 +1,5 @@
 //go:generate go tool go-enum --marshal --nocomments
-package nuage
+package openapi
 
 import "github.com/google/jsonschema-go/jsonschema"
 
@@ -23,11 +23,11 @@ type OpenAPI struct {
 	Info              *Info                `json:"info"`
 	JSONSchemaDialect string               `json:"jsonSchemaDialect,omitempty"`
 	Servers           []*Server            `json:"servers,omitempty"`
-	Paths             map[string]*pathItem `json:"paths"`
+	Paths             map[string]*PathItem `json:"paths"`
 	Components        *Components          `json:"components,omitempty"`
 }
 
-type pathItem struct {
+type PathItem struct {
 	Summary     string     `json:"summary,omitempty"`
 	Description string     `json:"description,omitempty"`
 	Get         *Operation `json:"get,omitempty"`

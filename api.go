@@ -6,25 +6,23 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/google/jsonschema-go/jsonschema"
+	"github.com/naivary/nuage/openapi"
 )
 
 type api struct {
-	openAPI *OpenAPI
+	openAPI *openapi.OpenAPI
 
 	mux *http.ServeMux
-
-	jsonSchemasReg map[string]*jsonschema.Schema
 }
 
-func NewAPI(root *OpenAPI) *api {
+func NewAPI(root *openapi.OpenAPI) *api {
 	return &api{
 		openAPI: root,
 		mux:     http.NewServeMux(),
 	}
 }
 
-func Handle[I, O any](api *api, operation *Operation, handler HandlerFuncErr[I, O]) error {
+func Handle[I, O any](api *api, operation *openapi.Operation, handler HandlerFuncErr[I, O]) error {
 	if !isStruct[I]() {
 		return errors.New("non struct input type")
 	}
@@ -41,7 +39,7 @@ func Handle[I, O any](api *api, operation *Operation, handler HandlerFuncErr[I, 
 	}
 	operation.Parameters = params
 
-	api.openAPI.Paths[pattern] = &pathItem{}
+	api.openAPI.Paths[pattern] = &openapi.PathItem{}
 	api.mux.Handle(operation.Pattern, handler)
 	return nil
 }

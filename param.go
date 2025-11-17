@@ -4,9 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"slices"
 
 	"github.com/google/jsonschema-go/jsonschema"
+
+	"github.com/naivary/nuage/openapi"
 )
 
 // paramSpecsFor generates a list of OpenAPI parameter specifications for a given
@@ -28,9 +29,9 @@ import (
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-func paramSpecsFor[I any]() ([]*Parameter, error) {
+func paramSpecsFor[I any]() ([]*openapi.Parameter, error) {
 	fields, err := fieldsOf[I]()
-	params := make([]*Parameter, 0, len(fields))
+	params := make([]*openapi.Parameter, 0, len(fields))
 	if err != nil {
 		return nil, err
 	}
@@ -47,7 +48,7 @@ func paramSpecsFor[I any]() ([]*Parameter, error) {
 			return nil, err
 		}
 		var (
-			param       *Parameter
+			param       *openapi.Parameter
 			newParamErr error
 		)
 		switch opts.tagKey {
@@ -70,16 +71,17 @@ func paramSpecsFor[I any]() ([]*Parameter, error) {
 	return params, nil
 }
 
-func newPathParam(opts *paramTagOpts) (*Parameter, error) {
+func newPathParam(opts *paramTagOpts) (*openapi.Parameter, error) {
 	if opts.style == "" {
-		opts.style = StyleSimple
+		opts.style = openapi.StyleSimple
 	}
-	validStyles := []Style{StyleSimple, StyleLabel, StyleMatrix}
-	if !slices.Contains(validStyles, opts.style) {
-		return nil, fmt.Errorf("invalid style: %s. Valid styles are: %v", opts.style, validStyles)
+	switch opts.style {
+	case openapi.StyleSimple, openapi.StyleLabel, openapi.StyleMatrix:
+	default:
+		return nil, fmt.Errorf("path parameter: invalid style `%s`", opts.style)
 	}
-	return &Parameter{
-		ParamIn:    ParamInPath,
+	return &openapi.Parameter{
+		ParamIn:    openapi.ParamInPath,
 		Name:       opts.name,
 		Deprecated: opts.deprecated,
 		Style:      opts.style,
@@ -90,37 +92,38 @@ func newPathParam(opts *paramTagOpts) (*Parameter, error) {
 	}, nil
 }
 
-func newHeaderParam(opts *paramTagOpts) (*Parameter, error) {
+func newHeaderParam(opts *paramTagOpts) (*openapi.Parameter, error) {
 	// Header key must be canonical
 	canonicalName := http.CanonicalHeaderKey(opts.name)
 	if canonicalName != opts.name {
 		return nil, fmt.Errorf("header name is not canonical: %s. Change it to: %s", opts.name, canonicalName)
 	}
-	return &Parameter{
-		ParamIn:    ParamInHeader,
+	return &openapi.Parameter{
+		ParamIn:    openapi.ParamInHeader,
 		Name:       canonicalName,
 		Deprecated: opts.deprecated,
 		// Headers are always style simple
-		Style:    StyleSimple,
+		Style:    openapi.StyleSimple,
 		Required: opts.required,
 		Example:  opts.example,
 	}, nil
 }
 
-func newQueryParam(opts *paramTagOpts) (*Parameter, error) {
+func newQueryParam(opts *paramTagOpts) (*openapi.Parameter, error) {
 	if opts.style == "" {
-		opts.style = StyleForm
+		opts.style = openapi.StyleForm
 		opts.explode = true
 	}
-	validStyles := []Style{StyleForm, StyleSpaceDelim, StylePipeDelim, StyleDeepObject}
-	if !slices.Contains(validStyles, opts.style) {
-		return nil, fmt.Errorf("invalid style: %s. Valid styles are: %v", opts.style, validStyles)
+	switch opts.style {
+	case openapi.StyleForm, openapi.StyleSpaceDelim, openapi.StylePipeDelim, openapi.StyleDeepObject:
+	default:
+		return nil, fmt.Errorf("query param: invalid style `%s`", &opts.style)
 	}
-	if opts.style == StyleDeepObject {
+	if opts.style == openapi.StyleDeepObject {
 		opts.explode = true
 	}
-	return &Parameter{
-		ParamIn:    ParamInQuery,
+	return &openapi.Parameter{
+		ParamIn:    openapi.ParamInQuery,
 		Name:       opts.name,
 		Deprecated: opts.deprecated,
 		Style:      opts.style,
@@ -130,12 +133,12 @@ func newQueryParam(opts *paramTagOpts) (*Parameter, error) {
 	}, nil
 }
 
-func newCookieParam(opts *paramTagOpts) (*Parameter, error) {
-	return &Parameter{
-		ParamIn:    ParamInCookie,
+func newCookieParam(opts *paramTagOpts) (*openapi.Parameter, error) {
+	return &openapi.Parameter{
+		ParamIn:    openapi.ParamInCookie,
 		Name:       opts.name,
 		Deprecated: opts.deprecated,
-		Style:      StyleForm,
+		Style:      openapi.StyleForm,
 		Required:   opts.required,
 		Example:    opts.example,
 	}, nil

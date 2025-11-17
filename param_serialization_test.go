@@ -4,6 +4,8 @@ import (
 	"reflect"
 	"slices"
 	"testing"
+
+	"github.com/naivary/nuage/openapi"
 )
 
 func TestSerializePathParam(t *testing.T) {
@@ -12,7 +14,7 @@ func TestSerializePathParam(t *testing.T) {
 	tests := []struct {
 		name     string
 		v        string
-		style    Style
+		style    openapi.Style
 		explode  bool
 		typ      reflect.Type
 		expected []string
@@ -20,14 +22,14 @@ func TestSerializePathParam(t *testing.T) {
 		{
 			name:     "simple primitive",
 			v:        "param",
-			style:    StyleSimple,
+			style:    openapi.StyleSimple,
 			typ:      reflect.TypeFor[string](),
 			expected: []string{"param"},
 		},
 		{
 			name:     "simple primitive explode",
 			v:        "param",
-			style:    StyleSimple,
+			style:    openapi.StyleSimple,
 			typ:      reflect.TypeFor[string](),
 			explode:  true,
 			expected: []string{"param"},
@@ -35,14 +37,14 @@ func TestSerializePathParam(t *testing.T) {
 		{
 			name:     "simple array",
 			v:        "e1,e2,e3",
-			style:    StyleSimple,
+			style:    openapi.StyleSimple,
 			typ:      s,
 			expected: []string{"e1", "e2", "e3"},
 		},
 		{
 			name:     "simple array explode",
 			v:        "e1,e2,e3",
-			style:    StyleSimple,
+			style:    openapi.StyleSimple,
 			typ:      s,
 			explode:  true,
 			expected: []string{"e1", "e2", "e3"},
@@ -50,7 +52,7 @@ func TestSerializePathParam(t *testing.T) {
 		{
 			name:     "simple map",
 			v:        "k1,v1,k2,v2",
-			style:    StyleSimple,
+			style:    openapi.StyleSimple,
 			typ:      m,
 			expected: []string{"k1", "v1", "k2", "v2"},
 		},
@@ -58,21 +60,21 @@ func TestSerializePathParam(t *testing.T) {
 			name:     "simple map explode",
 			v:        "k1=v1,k2=v2",
 			explode:  true,
-			style:    StyleSimple,
+			style:    openapi.StyleSimple,
 			typ:      m,
 			expected: []string{"k1", "v1", "k2", "v2"},
 		},
 		{
 			name:     "label primitive",
 			v:        ".p",
-			style:    StyleLabel,
+			style:    openapi.StyleLabel,
 			typ:      reflect.TypeFor[string](),
 			expected: []string{"p"},
 		},
 		{
 			name:     "label primitive explode",
 			v:        ".p",
-			style:    StyleLabel,
+			style:    openapi.StyleLabel,
 			explode:  true,
 			typ:      reflect.TypeFor[string](),
 			expected: []string{"p"},
@@ -80,14 +82,14 @@ func TestSerializePathParam(t *testing.T) {
 		{
 			name:     "label array",
 			v:        ".e1,e2,e3",
-			style:    StyleLabel,
+			style:    openapi.StyleLabel,
 			typ:      s,
 			expected: []string{"e1", "e2", "e3"},
 		},
 		{
 			name:     "label array explode",
 			v:        ".e1.e2.e3",
-			style:    StyleLabel,
+			style:    openapi.StyleLabel,
 			explode:  true,
 			typ:      s,
 			expected: []string{"e1", "e2", "e3"},
@@ -95,14 +97,14 @@ func TestSerializePathParam(t *testing.T) {
 		{
 			name:     "label map",
 			v:        ".k1,v1,k2,v2",
-			style:    StyleLabel,
+			style:    openapi.StyleLabel,
 			typ:      m,
 			expected: []string{"k1", "v1", "k2", "v2"},
 		},
 		{
 			name:     "label map explode",
 			v:        ".k1=v1.k2=v2",
-			style:    StyleLabel,
+			style:    openapi.StyleLabel,
 			explode:  true,
 			typ:      m,
 			expected: []string{"k1", "v1", "k2", "v2"},
@@ -110,14 +112,14 @@ func TestSerializePathParam(t *testing.T) {
 		{
 			name:     "matrix primitive",
 			v:        ";p1=t",
-			style:    StyleMatrix,
+			style:    openapi.StyleMatrix,
 			typ:      reflect.TypeFor[string](),
 			expected: []string{"t"},
 		},
 		{
 			name:     "matrix primitive explode",
 			v:        ";p1=t",
-			style:    StyleMatrix,
+			style:    openapi.StyleMatrix,
 			explode:  true,
 			typ:      reflect.TypeFor[string](),
 			expected: []string{"t"},
@@ -125,14 +127,14 @@ func TestSerializePathParam(t *testing.T) {
 		{
 			name:     "matrix array",
 			v:        ";p1=e1,e2,e3",
-			style:    StyleMatrix,
+			style:    openapi.StyleMatrix,
 			typ:      s,
 			expected: []string{"e1", "e2", "e3"},
 		},
 		{
 			name:     "matrix array explode",
 			v:        ";p1=e1;p2=e2;p3=e3",
-			style:    StyleMatrix,
+			style:    openapi.StyleMatrix,
 			explode:  true,
 			typ:      s,
 			expected: []string{"e1", "e2", "e3"},
@@ -140,14 +142,14 @@ func TestSerializePathParam(t *testing.T) {
 		{
 			name:     "matrix map",
 			v:        ";p1=k1,v1,k2,v2",
-			style:    StyleMatrix,
+			style:    openapi.StyleMatrix,
 			typ:      m,
 			expected: []string{"k1", "v1", "k2", "v2"},
 		},
 		{
 			name:     "matrix map explode",
 			v:        ";k1=v1;k2=v2",
-			style:    StyleMatrix,
+			style:    openapi.StyleMatrix,
 			explode:  true,
 			typ:      m,
 			expected: []string{"k1", "v1", "k2", "v2"},

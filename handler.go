@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+
+	"github.com/naivary/nuage/openapi"
 )
 
 type endpoint[I, O any] struct {
 	handler HandlerFuncErr[I, O]
-	doc     *Operation
+	doc     *openapi.Operation
 }
 
-func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-}
+func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {}
 
 // TODO: remove http.ResponseWriter from this
 type HandlerFuncErr[I, O any] func(r *http.Request, w http.ResponseWriter, input *I) (*O, error)

@@ -7,25 +7,27 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+
+	"github.com/naivary/nuage/openapi"
 )
 
-func SerializePathParam(v string, typ reflect.Type, style Style, explode bool) ([]string, error) {
+func SerializePathParam(v string, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
 	if v == "" {
 		return []string{}, nil
 	}
 	if style == "" {
-		style = StyleSimple
+		style = openapi.StyleSimple
 	}
 	kind := deref(typ).Kind()
 	switch style {
-	case StyleSimple:
+	case openapi.StyleSimple:
 		return serializePathParamStyleSimple(v, kind, explode)
-	case StyleLabel:
+	case openapi.StyleLabel:
 		return serializePathParamStyleLabel(v, kind, explode)
-	case StyleMatrix:
+	case openapi.StyleMatrix:
 		return serializePathParamStyleMatrix(v, kind, explode)
 	}
-	return nil, fmt.Errorf("serialized path param: invalid style %s", style)
+	return nil, fmt.Errorf("serialize path param: invalid style %s", style)
 }
 
 func serializePathParamStyleSimple(v string, kind reflect.Kind, explode bool) ([]string, error) {
@@ -114,24 +116,24 @@ func pathParamKeyValuePairs(v, sep string) ([]string, error) {
 	return values, nil
 }
 
-func SerializeQueryParam(q url.Values, name string, keys []string, typ reflect.Type, style Style, explode bool) ([]string, error) {
+func SerializeQueryParam(q url.Values, name string, keys []string, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
 	if style == "" {
-		style = StyleForm
+		style = openapi.StyleForm
 	}
 
 	typ = deref(typ)
 	switch style {
-	case StyleForm:
+	case openapi.StyleForm:
 		return serializeQueryParamStyleForm(q, name, keys, typ.Kind(), explode)
-	case StyleDeepObject:
+	case openapi.StyleDeepObject:
 		return serializeQueryParamStyleDeepObject(q, name, keys, typ.Kind(), explode)
-	case StyleSpaceDelim:
+	case openapi.StyleSpaceDelim:
 		if explode {
 			return q[name], nil
 		}
 		value := q.Get(name)
 		return strings.Split(value, " "), nil
-	case StylePipeDelim:
+	case openapi.StylePipeDelim:
 		if explode {
 			return q[name], nil
 		}
@@ -181,8 +183,8 @@ func serializeQueryParamStyleDeepObject(q url.Values, name string, keys []string
 	return values, nil
 }
 
-func SerializeHeaderParam(header http.Header, key string, typ reflect.Type, style Style, explode bool) ([]string, error) {
-	if style != StyleSimple {
+func SerializeHeaderParam(header http.Header, key string, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
+	if style != openapi.StyleSimple {
 		return nil, fmt.Errorf("invalid style: %s", style)
 	}
 	typ = deref(typ)
@@ -199,8 +201,8 @@ func SerializeHeaderParam(header http.Header, key string, typ reflect.Type, styl
 	return nil, fmt.Errorf("invalid kind: %v", typ.Kind())
 }
 
-func SerializeCookieParam(cookie *http.Cookie, typ reflect.Type, style Style, explode bool) ([]string, error) {
-	if style != StyleForm {
+func SerializeCookieParam(cookie *http.Cookie, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
+	if style != openapi.StyleForm {
 		return nil, fmt.Errorf("invalid style: %s", style)
 	}
 	typ = deref(typ)
