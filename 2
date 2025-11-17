@@ -4,14 +4,16 @@ import (
 	"encoding/json"
 	"log/slog"
 	"net/http"
+
+	"github.com/google/jsonschema-go/jsonschema"
 )
 
 type endpoint[I, O any] struct {
 	handler HandlerFuncErr[I, O]
-	doc     *Operation
-}
 
-func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	paramSchemas map[string]*jsonschema.Schema
+
+	requestSchema *jsonschema.Schema
 }
 
 // TODO: remove http.ResponseWriter from this

@@ -162,3 +162,15 @@ func canCallIsNil(kind reflect.Kind) bool {
 		return false
 	}
 }
+
+func fieldsOf[S any]() ([]reflect.StructField, error) {
+	if !isStruct[S]() {
+		return nil, errors.New("fields of: is not struct")
+	}
+	rtype := reflect.TypeFor[S]()
+	fields := make([]reflect.StructField, 0, rtype.NumField())
+	for i := range rtype.NumField() {
+		fields = append(fields, rtype.Field(i))
+	}
+	return fields, nil
+}

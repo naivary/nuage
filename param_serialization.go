@@ -9,17 +9,12 @@ import (
 	"strings"
 )
 
-const (
-	_defaultPathParamStyle  = StyleSimple
-	_defaultQueryParamStyle = StyleForm
-)
-
 func SerializePathParam(v string, typ reflect.Type, style Style, explode bool) ([]string, error) {
 	if v == "" {
 		return []string{}, nil
 	}
 	if style == "" {
-		style = _defaultPathParamStyle
+		style = StyleSimple
 	}
 	kind := deref(typ).Kind()
 	switch style {
@@ -121,7 +116,7 @@ func pathParamKeyValuePairs(v, sep string) ([]string, error) {
 
 func SerializeQueryParam(q url.Values, name string, keys []string, typ reflect.Type, style Style, explode bool) ([]string, error) {
 	if style == "" {
-		style = _defaultQueryParamStyle
+		style = StyleForm
 	}
 
 	typ = deref(typ)

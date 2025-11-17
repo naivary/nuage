@@ -13,7 +13,7 @@ func TestParseParamTagOpts(t *testing.T) {
 	rvalue := reflect.TypeFor[paramTagOptsTest]()
 	for i := range rvalue.NumField() {
 		field := rvalue.Field(i)
-		opts, err := parseParamTagOpts(_tagKeyQuery, field)
+		opts, err := parseParamTagOpts(field)
 		if err != nil {
 			t.Fatalf("parse param tag opts: %v", err)
 		}

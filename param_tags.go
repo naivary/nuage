@@ -32,32 +32,28 @@ const (
 )
 
 type paramTagOpts struct {
+	tagKey string
 	// agnostic options
-	Name       string
-	Required   bool
-	Explode    bool
-	Deprecated bool
-	Style      Style
-	Example    string
+	name       string
+	required   bool
+	explode    bool
+	deprecated bool
+	style      Style
+	example    string
 
 	// query param
-	QueryKeys []string
+	queryKeys []string
 }
 
-func parseParamTagOpts(paramTagKey string, field reflect.StructField) (*paramTagOpts, error) {
+func parseParamTagOpts(field reflect.StructField) (*paramTagOpts, error) {
 	opts := paramTagOpts{}
-	paramTagValue, ok := field.Tag.Lookup(paramTagKey)
-	if !ok {
+	paramTagKey, paramTagValue := paramTagKeyOf(field)
+	if paramTagKey == "" {
 		return nil, errTagNotFound
 	}
-	jsonTagValue, ok := field.Tag.Lookup("json")
-	if !ok {
-		return nil, fmt.Errorf(
-			`parse paramn tag opts: make sure that if you are tagging a struct field to be decoded from parameters it is also excluded from json payloads e.g. json:"-"`,
-		)
-	}
-	if jsonTagValue != "-" {
-		return nil, fmt.Errorf("parse param tag opts: only tag option for json is '-' for a parameter tagged struct field")
+	opts.tagKey = paramTagKey
+	if err := isExcludedFromJSON(field); err != nil {
+		return nil, err
 	}
 
 	values := strings.Split(paramTagValue, ",")
@@ -65,33 +61,58 @@ func parseParamTagOpts(paramTagKey string, field reflect.StructField) (*paramTag
 		return nil, fmt.Errorf("empty tag (%s in %v): need at least one name value", paramTagKey, field)
 	}
 	// first element of the tag is always the name
-	opts.Name = values[0]
+	opts.name = values[0]
 	values = values[1:]
 	if slices.Contains(values, "deprecated") {
-		opts.Deprecated = true
+		opts.deprecated = true
 	}
 	if slices.Contains(values, "required") {
-		opts.Required = true
+		opts.required = true
 	}
 	if slices.Contains(values, "explode") {
-		opts.Explode = true
+		opts.explode = true
 	}
 	exampleTagValue, ok := field.Tag.Lookup(_tagKeyParamExample)
 	if ok && exampleTagValue == "" {
 		return nil, fmt.Errorf("paramexample cannot be empty: %v", field)
 	}
-	opts.Example = exampleTagValue
+	opts.example = exampleTagValue
 
 	styleTagValue, ok := field.Tag.Lookup(_tagKeyParamStyle)
 	if ok && !Style(styleTagValue).IsValid() {
 		return nil, fmt.Errorf("invalid param style: %s in %v", paramTagKey, field)
 	}
-	opts.Style = Style(styleTagValue)
+	opts.style = Style(styleTagValue)
 
 	queryKeys, ok := field.Tag.Lookup(_tagKeyQueryKeys)
 	if ok && queryKeys == "" {
 		return nil, fmt.Errorf("querykeys tag cannot be empty: %v", field)
 	}
-	opts.QueryKeys = strings.Split(queryKeys, ",")
+	opts.queryKeys = strings.Split(queryKeys, ",")
 	return &opts, nil
+}
+
+func isExcludedFromJSON(field reflect.StructField) error {
+	jsonTagValue, ok := field.Tag.Lookup("json")
+	if !ok {
+		return fmt.Errorf(
+			`parse paramn tag opts: make sure that if you are tagging a struct field to be decoded from parameters it is also excluded from json payloads e.g. json:"-"`,
+		)
+	}
+	if jsonTagValue != "-" {
+		return fmt.Errorf("parse param tag opts: only tag option for json is '-' for a parameter tagged struct field")
+	}
+	return nil
+}
+
+func paramTagKeyOf(field reflect.StructField) (string, string) {
+	// find the tag key of the parameter e.g. header, query etc.
+	for _, tagKey := range _tagKeys {
+		paramTagValue, ok := field.Tag.Lookup(tagKey)
+		if !ok {
+			continue
+		}
+		return tagKey, paramTagValue
+	}
+	return "", ""
 }

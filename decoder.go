@@ -8,7 +8,7 @@ import (
 	"reflect"
 )
 
-func Decode[T any](r *http.Request, v *T) error {
+func decode[T any](r *http.Request, v *T) error {
 	rvalue := reflect.ValueOf(v).Elem()
 	rtype := rvalue.Type()
 	if !isStruct[T]() {
@@ -21,40 +21,36 @@ func Decode[T any](r *http.Request, v *T) error {
 			// unexported fields will be ignored for decoding
 			continue
 		}
-		for _, tagKey := range _tagKeys {
-			opts, err := parseParamTagOpts(tagKey, field)
-			if errors.Is(err, errTagNotFound) {
-				continue
-			}
-			if err != nil {
-				return err
-			}
+		opts, err := parseParamTagOpts(field)
+		if errors.Is(err, errTagNotFound) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
 
-			fieldValue := rvalue.Field(i)
-			var rhs []string
-			switch tagKey {
-			case _tagKeyPath:
-				slug := r.PathValue(opts.Name)
-				if slug == "" && opts.Required {
-					return fmt.Errorf("decode: missing required path param %v", opts.Name)
-				}
-				rhs, err = SerializePathParam(slug, field.Type, opts.Style, opts.Explode)
-			case _tagKeyQuery:
-				rhs, err = SerializeQueryParam(r.URL.Query(), opts.Name, opts.QueryKeys, field.Type, opts.Style, opts.Explode)
-			case _tagKeyHeader:
-				rhs, err = SerializeHeaderParam(r.Header, opts.Name, field.Type, opts.Style, opts.Explode)
-			case _tagKeyCookie:
-				rhs, err = SerializeHeaderParam(r.Header, opts.Name, field.Type, opts.Style, opts.Explode)
+		fieldValue := rvalue.Field(i)
+		var rhs []string
+		switch opts.tagKey {
+		case _tagKeyPath:
+			slug := r.PathValue(opts.name)
+			if slug == "" && opts.required {
+				return fmt.Errorf("decode: missing required path param %v", opts.name)
 			}
-			if err != nil {
-				return err
-			}
-			err = assign(fieldValue, rhs...)
-			if err != nil {
-				return err
-			}
-			// one field can only be one type of parameter.
-			break
+			rhs, err = SerializePathParam(slug, field.Type, opts.style, opts.explode)
+		case _tagKeyQuery:
+			rhs, err = SerializeQueryParam(r.URL.Query(), opts.name, opts.queryKeys, field.Type, opts.style, opts.explode)
+		case _tagKeyHeader:
+			rhs, err = SerializeHeaderParam(r.Header, opts.name, field.Type, opts.style, opts.explode)
+		case _tagKeyCookie:
+			rhs, err = SerializeHeaderParam(r.Header, opts.name, field.Type, opts.style, opts.explode)
+		}
+		if err != nil {
+			return err
+		}
+		err = assign(fieldValue, rhs...)
+		if err != nil {
+			return err
 		}
 	}
 	// decode payload
