@@ -5,7 +5,13 @@ import (
 	"fmt"
 )
 
-var ErrParamValidationFailed = HTTPError[string, string]{}
+var (
+	ErrParamValidationFailed = HTTPError[string, string]{}
+	ErrFormatUnsupported     = HTTPError[string, string]{}
+)
+
+// TODO: implement a function which is taking a http.REsponseWriter and can
+// serialize the error message
 
 // httpError is a private, unexported interface implemented by custom
 // error types that represent an HTTP-related failure.

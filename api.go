@@ -15,6 +15,12 @@ type APIConfig struct {
 	LoggerOpts *slog.HandlerOptions
 
 	Doc *openapi.OpenAPI
+
+	// Supported formats of the REST API. If the format cannot be found an error
+	// will be returned and not format negotiation can be succesfully completed.
+	Formats map[string]Formater
+
+	DefaultFormat string
 }
 
 func DefaultAPIConfig() *APIConfig {
@@ -22,17 +28,19 @@ func DefaultAPIConfig() *APIConfig {
 		LoggerOpts: &slog.HandlerOptions{
 			AddSource: true,
 		},
+		Formats: map[string]Formater{
+			ContentTypeJSON: &JSONFormater{},
+		},
+		DefaultFormat: ContentTypeJSON,
 	}
 }
 
 type api struct {
-	Doc *openapi.OpenAPI
-
-	Mux *http.ServeMux
-
-	logger *slog.Logger
-
+	doc        *openapi.OpenAPI
+	mux        *http.ServeMux
+	logger     *slog.Logger
 	operations map[string]struct{}
+	formats    map[string]Formater
 }
 
 func NewAPI(cfg *APIConfig) (*api, error) {
@@ -43,28 +51,26 @@ func NewAPI(cfg *APIConfig) (*api, error) {
 		return nil, errors.New("new api: missing openapi documentation")
 	}
 	return &api{
-		Doc:        cfg.Doc,
-		Mux:        http.NewServeMux(),
+		doc:        cfg.Doc,
+		mux:        http.NewServeMux(),
 		operations: make(map[string]struct{}),
 		logger:     slog.New(slog.NewJSONHandler(os.Stdout, cfg.LoggerOpts)),
+		formats:    cfg.Formats,
 	}, nil
 }
 
-func Handle[I, O any](api *api, pattern string, op *openapi.Operation, handler HandlerFuncErr[I, O]) error {
-	if !isStruct[I]() {
-		return errors.New("non struct input type")
+func Handle[I, O any](api *api, op *openapi.Operation, handler HandlerFuncErr[I, O]) error {
+	if !isStruct[I]() || !isStruct[O]() {
+		return errors.New("handle: both input and output data types have to be of kind struct")
 	}
-	if !isStruct[O]() {
-		return errors.New("non struct output type")
-	}
-	method, uri, isValidPatternSyntax := strings.Cut(pattern, " ")
+	method, uri, isValidPatternSyntax := strings.Cut(op.Pattern, " ")
 	if !isValidPatternSyntax {
-		return fmt.Errorf("invalid pattern syntax: %s", pattern)
+		return fmt.Errorf("invalid pattern syntax: %s", op.Pattern)
 	}
 	if op.OperationID == "" {
 		return fmt.Errorf("handle: operation id missing")
 	}
-	if _, isIDExisting := api.operations[op.OperationID]; isIDExisting {
+	if _, isIDUnique := api.operations[op.OperationID]; isIDUnique {
 		return fmt.Errorf("handle: operation id repeated `%s`", op.OperationID)
 	}
 	api.operations[op.OperationID] = struct{}{}
@@ -75,15 +81,16 @@ func Handle[I, O any](api *api, pattern string, op *openapi.Operation, handler H
 		handler: handler,
 		doc:     op,
 		logger:  api.logger,
+		formats: api.formats,
 	}
-	pathItem := api.Doc.Paths[pattern]
+	pathItem := api.doc.Paths[op.Pattern]
 	if pathItem == nil {
 		pathItem = &openapi.PathItem{}
 	}
 	if err := pathItem.AddOperation(method, op); err != nil {
 		return err
 	}
-	api.Doc.Paths[uri] = pathItem
-	api.Mux.Handle(pattern, e)
+	api.doc.Paths[uri] = pathItem
+	api.mux.Handle(op.Pattern, e)
 	return nil
 }

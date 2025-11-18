@@ -22,16 +22,15 @@ func TestHandle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("new api: %v", err)
 	}
-	hl := HandlerFuncErr[requestTypeTest, responseTypeTest](func(r *http.Request, input *requestTypeTest) (Response[responseTypeTest], error) {
-		var output responseTypeTest
-		return Return(output, http.StatusOK), nil
+	hl := HandlerFuncErr[requestTypeTest, responseTypeTest](func(r *http.Request, input *requestTypeTest) (*responseTypeTest, error) {
+		return nil, nil
 	})
-	err = Handle(api, &Operation{
-		Pattern:     "GET /path/to/{p1}",
+	err = Handle(api, &openapi.Operation{
+		Pattern:     "GET /path/to/endpoint",
 		OperationID: "CreateUser",
 	}, hl)
 	if err != nil {
 		t.Fatalf("handle: %v", err)
 	}
-	t.Log(json.NewEncoder(os.Stdout).Encode(api.Doc.Paths))
+	t.Log(json.NewEncoder(os.Stdout).Encode(api.doc.Paths))
 }

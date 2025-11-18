@@ -14,6 +14,13 @@ type Operation struct {
 	Parameters  []*Parameter         `json:"parameters,omitempty"`
 	RequestBody *RequestBody         `json:"requestBody,omitempty"`
 	Responses   map[string]*Response `json:"responses,omitempty"`
+
+	// nuage specific fields which are not compatible to the openapi spec
+
+	// Pattern to register the handler endpoint
+	Pattern string
+	// ContentType of this specific operation.
+	ContentType string
 }
 
 func (o *Operation) GetParamSchema(name string, in ParamIn) *jsonschema.Schema {

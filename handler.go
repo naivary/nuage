@@ -14,17 +14,23 @@ type Responser interface {
 	Description() string
 }
 
-// TODO: remove http.ResponseWriter from this
 type HandlerFuncErr[I, O any] func(r *http.Request, input *I) (*O, error)
 
 type endpoint[I, O any] struct {
 	handler HandlerFuncErr[I, O]
 	doc     *openapi.Operation
 	logger  *slog.Logger
+	formats map[string]Formater
 }
 
 func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
+	format := r.Header.Get(_headerKeyContentType)
+	_, isSupportedFormat := e.formats[format]
+	if !isSupportedFormat {
+		// unssuported format
+		return
+	}
 	err := e.validateParams(r)
 	if err != nil {
 		return
@@ -48,7 +54,7 @@ func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	res, err := e.handler(r, &input)
 	if err == nil {
-		responser, impl := any(res).(Responser)
+		responser := any(res).(Responser)
 		err = encode(w, responser.StatusCode(), res)
 		if err != nil {
 			e.logger.Error(err.Error())
