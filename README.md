@@ -28,3 +28,7 @@ compatible as possible. The following Standards are implemented:
 - RFC 9333 RateLimit Headers
 - OpenAPI Spec
 - AsyncAPI Spec
+
+## TODOs
+
+Custom format support

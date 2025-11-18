@@ -45,9 +45,7 @@ func buildOperationSpec[I, O any](op *openapi.Operation) error {
 	}
 	op.Responses[strconv.Itoa(responseStatusCode)] = &openapi.Response{
 		Description: responseDesc,
-		Headers: map[string]*openapi.Parameter{
-
-		},
+		Headers:     responseHeaders,
 		Content: map[string]*openapi.MediaType{
 			ContentTypeJSON: {
 				Schema: responseSchema,
@@ -57,12 +55,12 @@ func buildOperationSpec[I, O any](op *openapi.Operation) error {
 	return nil
 }
 
-func responseHeaderSpecs[O any]() ([]*openapi.Parameter, error) {
+func responseHeaderSpecs[O any]() (map[string]*openapi.Parameter, error) {
 	fields, err := fieldsOf[O]()
 	if err != nil {
 		return nil, err
 	}
-	headers := make([]*openapi.Parameter, 0, len(fields))
+	headers := make(map[string]*openapi.Parameter, len(fields))
 	for _, field := range fields {
 		opts, err := parseParamTagOpts(field)
 		if err != nil {
@@ -71,13 +69,12 @@ func responseHeaderSpecs[O any]() ([]*openapi.Parameter, error) {
 		if opts.tagKey != _tagKeyHeader {
 			continue
 		}
-		headers = append(headers, &openapi.Parameter{
-			Name:       opts.name,
+		headers[opts.name] = &openapi.Parameter{
 			ParamIn:    openapi.ParamInHeader,
 			Style:      openapi.StyleSimple,
 			Explode:    opts.explode,
 			Deprecated: opts.deprecated,
-		})
+		}
 	}
 	return headers, nil
 }
