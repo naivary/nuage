@@ -122,17 +122,8 @@ type Response struct {
 	Ref         string                `json:"$ref,omitempty"`
 	Summary     string                `json:"summary,omitempty"`
 	Description string                `json:"description,omitempty"`
-	Headers     map[string]*Header    `json:"headers,omitempty"`
+	Headers     map[string]*Parameter `json:"headers,omitempty"`
 	Content     map[string]*MediaType `json:"content,omitempty"`
-}
-
-type Header struct {
-	Description string             `json:"description,omitempty"`
-	Required    bool               `json:"required,omitempty"`
-	Deprecated  bool               `json:"deprecated,omitempty"`
-	Example     any                `json:"example,omitempty"`
-	Schema      *jsonschema.Schema `json:"schema,omitempty"`
-	Style       Style              `json:"style,omitempty"`
 }
 
 type MediaType struct {

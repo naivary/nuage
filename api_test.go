@@ -26,7 +26,7 @@ func TestHandle(t *testing.T) {
 		var output responseTypeTest
 		return Return(output, http.StatusOK), nil
 	})
-	err = Handle(api, &openapi.Operation{
+	err = Handle(api, &Operation{
 		Pattern:     "GET /path/to/{p1}",
 		OperationID: "CreateUser",
 	}, hl)

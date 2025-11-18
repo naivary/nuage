@@ -8,16 +8,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/google/jsonschema-go/jsonschema"
-
 	"github.com/naivary/nuage/openapi"
 )
-
-type Operation struct {
-	*openapi.Operation
-
-	Pattern string
-}
 
 type APIConfig struct {
 	LoggerOpts *slog.HandlerOptions
@@ -58,16 +50,16 @@ func NewAPI(cfg *APIConfig) (*api, error) {
 	}, nil
 }
 
-func Handle[I, O any](api *api, op *Operation, handler HandlerFuncErr[I, O]) error {
+func Handle[I, O any](api *api, pattern string, op *openapi.Operation, handler HandlerFuncErr[I, O]) error {
 	if !isStruct[I]() {
 		return errors.New("non struct input type")
 	}
 	if !isStruct[O]() {
 		return errors.New("non struct output type")
 	}
-	method, pattern, isValidPatternSyntax := strings.Cut(op.Pattern, " ")
+	method, uri, isValidPatternSyntax := strings.Cut(pattern, " ")
 	if !isValidPatternSyntax {
-		return fmt.Errorf("invalid pattern syntax: %s", op.Pattern)
+		return fmt.Errorf("invalid pattern syntax: %s", pattern)
 	}
 	if op.OperationID == "" {
 		return fmt.Errorf("handle: operation id missing")
@@ -76,47 +68,22 @@ func Handle[I, O any](api *api, op *Operation, handler HandlerFuncErr[I, O]) err
 		return fmt.Errorf("handle: operation id repeated `%s`", op.OperationID)
 	}
 	api.operations[op.OperationID] = struct{}{}
-	if err := buildOperationSpec[I, O](op.Operation); err != nil {
+	if err := buildOperationSpec[I, O](op); err != nil {
 		return err
 	}
 	e := &endpoint[I, O]{
 		handler: handler,
-		doc:     op.Operation,
+		doc:     op,
 		logger:  api.logger,
 	}
 	pathItem := api.Doc.Paths[pattern]
 	if pathItem == nil {
 		pathItem = &openapi.PathItem{}
 	}
-	if err := pathItem.AddOperation(method, op.Operation); err != nil {
+	if err := pathItem.AddOperation(method, op); err != nil {
 		return err
 	}
-	api.Doc.Paths[pattern] = pathItem
-	api.Mux.Handle(op.Pattern, e)
-	return nil
-}
-
-func buildOperationSpec[I, O any](op *openapi.Operation) error {
-	paramSpecs, err := paramSpecsFor[I]()
-	if err != nil {
-		return err
-	}
-	op.Parameters = paramSpecs
-
-	requestSchema, err := jsonschema.For[I](nil)
-	if err != nil {
-		return err
-	}
-	op.RequestBody = &openapi.RequestBody{
-		Description: "Successfull Request!",
-		Required:    true,
-		Content: map[string]*openapi.MediaType{
-			ContentTypeJSON: {Schema: requestSchema},
-		},
-	}
-	responseSchema, err := jsonschema.For[O](nil)
-	if err != nil {
-		return err
-	}
+	api.Doc.Paths[uri] = pathItem
+	api.Mux.Handle(pattern, e)
 	return nil
 }

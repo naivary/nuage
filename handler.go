@@ -9,8 +9,13 @@ import (
 	"github.com/naivary/nuage/openapi"
 )
 
+type Responser interface {
+	StatusCode() int
+	Description() string
+}
+
 // TODO: remove http.ResponseWriter from this
-type HandlerFuncErr[I, O any] func(r *http.Request, input *I) (Response[O], error)
+type HandlerFuncErr[I, O any] func(r *http.Request, input *I) (*O, error)
 
 type endpoint[I, O any] struct {
 	handler HandlerFuncErr[I, O]
@@ -43,7 +48,8 @@ func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	res, err := e.handler(r, &input)
 	if err == nil {
-		err = encode(w, res.StatusCode(), res.Data())
+		responser, impl := any(res).(Responser)
+		err = encode(w, responser.StatusCode(), res)
 		if err != nil {
 			e.logger.Error(err.Error())
 		}
