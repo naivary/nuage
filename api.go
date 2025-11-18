@@ -3,22 +3,35 @@ package nuage
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/naivary/nuage/openapi"
 )
 
-type api struct {
-	openAPI *openapi.OpenAPI
+type APIConfig struct {
+	LoggerOpts *slog.HandlerOptions
 
-	mux *http.ServeMux
+	Doc *openapi.OpenAPI
 }
 
-func NewAPI(root *openapi.OpenAPI) *api {
+type api struct {
+	OpenAPI *openapi.OpenAPI
+
+	Mux *http.ServeMux
+
+	logger *slog.Logger
+
+	operations map[string]struct{}
+}
+
+func NewAPI(cfg *APIConfig) *api {
 	return &api{
-		openAPI: root,
-		mux:     http.NewServeMux(),
+		OpenAPI: cfg.Doc,
+		Mux:     http.NewServeMux(),
+		logger:  slog.New(slog.NewJSONHandler(os.Stdout, cfg.LoggerOpts)),
 	}
 }
 
@@ -39,7 +52,13 @@ func Handle[I, O any](api *api, operation *openapi.Operation, handler HandlerFun
 	}
 	operation.Parameters = params
 
-	api.openAPI.Paths[pattern] = &openapi.PathItem{}
-	api.mux.Handle(operation.Pattern, handler)
+	api.OpenAPI.Paths[pattern] = &openapi.PathItem{}
+	e := endpoint[I, O]{handler: handler, doc: operation}
+	_, isExisting := api.operations[operation.OperationID]
+	if isExisting {
+		return fmt.Errorf("handle: non-unique operation id `%s`", operation.OperationID)
+	}
+	api.operations[operation.OperationID] = struct{}{}
+	api.Mux.Handle(operation.Pattern, &e)
 	return nil
 }
