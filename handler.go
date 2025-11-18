@@ -10,7 +10,7 @@ import (
 )
 
 // TODO: remove http.ResponseWriter from this
-type HandlerFuncErr[I, O any] func(r *http.Request, w http.ResponseWriter, input *I) (*O, error)
+type HandlerFuncErr[I, O any] func(r *http.Request, input *I) (Response[O], error)
 
 type endpoint[I, O any] struct {
 	handler HandlerFuncErr[I, O]
@@ -41,11 +41,11 @@ func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-	output, err := e.handler(r, w, &input)
+	res, err := e.handler(r, &input)
 	if err == nil {
-		err = encode(w, http.StatusOK, output)
+		err = encode(w, res.StatusCode(), res.Data())
 		if err != nil {
-			slog.Error(err.Error())
+			e.logger.Error(err.Error())
 		}
 		return
 	}
@@ -55,12 +55,12 @@ func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !isHTTPErr {
 		// non-rfc9457 errors will only be logged and not retunred to the client
 		// because of security risks of exposing internal functionalities
-		slog.Error(err.Error())
+		e.logger.Error(err.Error())
 		return
 	}
 	err = json.NewEncoder(w).Encode(err)
 	if err != nil {
-		slog.Error(err.Error())
+		e.logger.Error(err.Error())
 	}
 }
 

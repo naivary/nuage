@@ -8,8 +8,16 @@ import (
 	"os"
 	"strings"
 
+	"github.com/google/jsonschema-go/jsonschema"
+
 	"github.com/naivary/nuage/openapi"
 )
+
+type Operation struct {
+	*openapi.Operation
+
+	Pattern string
+}
 
 type APIConfig struct {
 	LoggerOpts *slog.HandlerOptions
@@ -17,8 +25,16 @@ type APIConfig struct {
 	Doc *openapi.OpenAPI
 }
 
+func DefaultAPIConfig() *APIConfig {
+	return &APIConfig{
+		LoggerOpts: &slog.HandlerOptions{
+			AddSource: true,
+		},
+	}
+}
+
 type api struct {
-	OpenAPI *openapi.OpenAPI
+	Doc *openapi.OpenAPI
 
 	Mux *http.ServeMux
 
@@ -27,38 +43,80 @@ type api struct {
 	operations map[string]struct{}
 }
 
-func NewAPI(cfg *APIConfig) *api {
-	return &api{
-		OpenAPI: cfg.Doc,
-		Mux:     http.NewServeMux(),
-		logger:  slog.New(slog.NewJSONHandler(os.Stdout, cfg.LoggerOpts)),
+func NewAPI(cfg *APIConfig) (*api, error) {
+	if cfg == nil {
+		cfg = DefaultAPIConfig()
 	}
+	if cfg.Doc == nil {
+		return nil, errors.New("new api: missing openapi documentation")
+	}
+	return &api{
+		Doc:        cfg.Doc,
+		Mux:        http.NewServeMux(),
+		operations: make(map[string]struct{}),
+		logger:     slog.New(slog.NewJSONHandler(os.Stdout, cfg.LoggerOpts)),
+	}, nil
 }
 
-func Handle[I, O any](api *api, operation *openapi.Operation, handler HandlerFuncErr[I, O]) error {
+func Handle[I, O any](api *api, op *Operation, handler HandlerFuncErr[I, O]) error {
 	if !isStruct[I]() {
 		return errors.New("non struct input type")
 	}
 	if !isStruct[O]() {
 		return errors.New("non struct output type")
 	}
-	_, pattern, found := strings.Cut(operation.Pattern, " ")
-	if !found {
-		return fmt.Errorf("invalid pattern syntax: %s", operation.Pattern)
+	method, pattern, isValidPatternSyntax := strings.Cut(op.Pattern, " ")
+	if !isValidPatternSyntax {
+		return fmt.Errorf("invalid pattern syntax: %s", op.Pattern)
 	}
-	params, err := paramSpecsFor[I]()
+	if op.OperationID == "" {
+		return fmt.Errorf("handle: operation id missing")
+	}
+	if _, isIDExisting := api.operations[op.OperationID]; isIDExisting {
+		return fmt.Errorf("handle: operation id repeated `%s`", op.OperationID)
+	}
+	api.operations[op.OperationID] = struct{}{}
+	if err := buildOperationSpec[I, O](op.Operation); err != nil {
+		return err
+	}
+	e := &endpoint[I, O]{
+		handler: handler,
+		doc:     op.Operation,
+		logger:  api.logger,
+	}
+	pathItem := api.Doc.Paths[pattern]
+	if pathItem == nil {
+		pathItem = &openapi.PathItem{}
+	}
+	if err := pathItem.AddOperation(method, op.Operation); err != nil {
+		return err
+	}
+	api.Doc.Paths[pattern] = pathItem
+	api.Mux.Handle(op.Pattern, e)
+	return nil
+}
+
+func buildOperationSpec[I, O any](op *openapi.Operation) error {
+	paramSpecs, err := paramSpecsFor[I]()
 	if err != nil {
 		return err
 	}
-	operation.Parameters = params
+	op.Parameters = paramSpecs
 
-	api.OpenAPI.Paths[pattern] = &openapi.PathItem{}
-	e := endpoint[I, O]{handler: handler, doc: operation}
-	_, isExisting := api.operations[operation.OperationID]
-	if isExisting {
-		return fmt.Errorf("handle: non-unique operation id `%s`", operation.OperationID)
+	requestSchema, err := jsonschema.For[I](nil)
+	if err != nil {
+		return err
 	}
-	api.operations[operation.OperationID] = struct{}{}
-	api.Mux.Handle(operation.Pattern, &e)
+	op.RequestBody = &openapi.RequestBody{
+		Description: "Successfull Request!",
+		Required:    true,
+		Content: map[string]*openapi.MediaType{
+			ContentTypeJSON: {Schema: requestSchema},
+		},
+	}
+	responseSchema, err := jsonschema.For[O](nil)
+	if err != nil {
+		return err
+	}
 	return nil
 }

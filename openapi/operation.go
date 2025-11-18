@@ -10,11 +10,10 @@ type Operation struct {
 	OperationID string                `json:"operationId,omitempty"`
 	Deprecated  bool                  `json:"deprecated,omitempty"`
 	Security    []SecurityRequirement `json:"security,omitempty"`
-	Pattern     string                `json:"-"`
 
 	Parameters  []*Parameter         `json:"parameters,omitempty"`
 	RequestBody *RequestBody         `json:"requestBody,omitempty"`
-	Responses   map[string]*Response `json:"responses"`
+	Responses   map[string]*Response `json:"responses,omitempty"`
 }
 
 func (o *Operation) GetParamSchema(name string, in ParamIn) *jsonschema.Schema {

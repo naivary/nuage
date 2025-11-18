@@ -1,7 +1,12 @@
 //go:generate go tool go-enum --marshal --nocomments
 package openapi
 
-import "github.com/google/jsonschema-go/jsonschema"
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/google/jsonschema-go/jsonschema"
+)
 
 // ENUM(MIT, Apache-2.0)
 type LicenseKeyword string
@@ -27,6 +32,14 @@ type OpenAPI struct {
 	Components        *Components          `json:"components,omitempty"`
 }
 
+func New(version string, info *Info) *OpenAPI {
+	return &OpenAPI{
+		Version: version,
+		Info:    info,
+		Paths:   make(map[string]*PathItem),
+	}
+}
+
 type PathItem struct {
 	Summary     string     `json:"summary,omitempty"`
 	Description string     `json:"description,omitempty"`
@@ -39,6 +52,52 @@ type PathItem struct {
 	Patch       *Operation `json:"patch,omitempty"`
 	Trace       *Operation `json:"trace,omitempty"`
 	Query       *Operation `json:"query,omitempty"`
+}
+
+func (p *PathItem) AddOperation(method string, op *Operation) error {
+	switch method {
+	case http.MethodGet:
+		if p.Get != nil {
+			return fmt.Errorf("add operation: operation for `%s` for method `%s` exists", op.OperationID, method)
+		}
+		p.Get = op
+	case http.MethodPut:
+		if p.Put != nil {
+			return fmt.Errorf("add operation: operation for `%s` for method `%s` exists", op.OperationID, method)
+		}
+		p.Put = op
+	case http.MethodPost:
+		if p.Post != nil {
+			return fmt.Errorf("add operation: operation for `%s` for method `%s` exists", op.OperationID, method)
+		}
+		p.Post = op
+	case http.MethodDelete:
+		if p.Delete != nil {
+			return fmt.Errorf("add operation: operation for `%s` for method `%s` exists", op.OperationID, method)
+		}
+		p.Delete = op
+	case http.MethodOptions:
+		if p.Options != nil {
+			return fmt.Errorf("add operation: operation for `%s` for method `%s` exists", op.OperationID, method)
+		}
+		p.Options = op
+	case http.MethodHead:
+		if p.Head != nil {
+			return fmt.Errorf("add operation: operation for `%s` for method `%s` exists", op.OperationID, method)
+		}
+		p.Head = op
+	case http.MethodPatch:
+		if p.Patch != nil {
+			return fmt.Errorf("add operation: operation for `%s` for method `%s` exists", op.OperationID, method)
+		}
+		p.Patch = op
+	case http.MethodTrace:
+		if p.Trace != nil {
+			return fmt.Errorf("add operation: operation for `%s` for method `%s` exists", op.OperationID, method)
+		}
+		p.Trace = op
+	}
+	return nil
 }
 
 type RequestBody struct {
