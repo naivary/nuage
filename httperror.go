@@ -8,6 +8,7 @@ import (
 var (
 	ErrParamValidationFailed = HTTPError[string, string]{}
 	ErrFormatUnsupported     = HTTPError[string, string]{}
+	ErrNuageInternal         = HTTPError[string, string]{}
 )
 
 // TODO: implement a function which is taking a http.REsponseWriter and can

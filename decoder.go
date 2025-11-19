@@ -48,10 +48,11 @@ func decodeParams[T any](r *http.Request, v *T) error {
 			}
 			rhs, err = serializeHeaderParam(r.Header, opts.name, field.Type, opts.style, opts.explode)
 		case _tagKeyCookie:
-			if _, err := r.Cookie(opts.name); errors.Is(err, http.ErrNoCookie) && opts.required {
+			cookie, err := r.Cookie(opts.name)
+			if errors.Is(err, http.ErrNoCookie) && opts.required {
 				return fmt.Errorf("decode: missing required cookie param %s", opts.name)
 			}
-			rhs, err = serializeHeaderParam(r.Header, opts.name, field.Type, opts.style, opts.explode)
+			rhs, err = serializeCookieParam(cookie, field.Type, opts.style, opts.explode)
 		}
 		if err != nil {
 			return err

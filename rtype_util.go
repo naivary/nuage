@@ -22,6 +22,8 @@ func assign(lhs reflect.Value, rhs ...string) error {
 	}
 
 	switch deref(lhs.Type()).Kind() {
+	case reflect.Chan, reflect.Func:
+		return fmt.Errorf("assign: kind is unsupported")
 	case reflect.String:
 		lhs.SetString(rhs[0])
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:

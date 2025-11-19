@@ -11,6 +11,8 @@ import (
 	"github.com/naivary/nuage/openapi"
 )
 
+const ContentTypeJSON = "application/json"
+
 type APIConfig struct {
 	LoggerOpts *slog.HandlerOptions
 
@@ -57,6 +59,7 @@ func NewAPI(doc *openapi.OpenAPI, cfg *APIConfig) (*api, error) {
 	}, nil
 }
 
+// TODO: impelemnt is valid operationr as own function
 func Handle[I, O any](api *api, op *openapi.Operation, handler HandlerFuncErr[I, O]) error {
 	if !isStruct[I]() || !isStruct[O]() {
 		return errors.New("handle: both input and output data types have to be of kind struct")
@@ -90,10 +93,5 @@ func Handle[I, O any](api *api, op *openapi.Operation, handler HandlerFuncErr[I,
 	}
 	api.doc.Paths[uri] = pathItem
 	api.mux.Handle(op.Pattern, e)
-	return nil
-}
-
-// TODO: implement it
-func isValidOperation(operations map[string]struct{}, op *openapi.Operation) error {
 	return nil
 }
