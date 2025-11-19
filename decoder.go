@@ -1,14 +1,13 @@
 package nuage
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 	"reflect"
 )
 
-func decode[T any](r *http.Request, v *T) error {
+func decodeParams[T any](r *http.Request, v *T) error {
 	rvalue := reflect.ValueOf(v).Elem()
 	rtype := rvalue.Type()
 	if !isStruct[T]() {
@@ -35,14 +34,23 @@ func decode[T any](r *http.Request, v *T) error {
 		case _tagKeyPath:
 			slug := r.PathValue(opts.name)
 			if slug == "" && opts.required {
-				return fmt.Errorf("decode: missing required path param %v", opts.name)
+				return fmt.Errorf("decode: missing required path param %s", opts.name)
 			}
 			rhs, err = serializePathParam(slug, field.Type, opts.style, opts.explode)
 		case _tagKeyQuery:
+			if !r.URL.Query().Has(opts.name) && opts.required {
+				return fmt.Errorf("decode: missing required query param %s", opts.name)
+			}
 			rhs, err = serializeQueryParam(r.URL.Query(), opts.name, opts.queryKeys, field.Type, opts.style, opts.explode)
 		case _tagKeyHeader:
+			if value := r.Header.Get(opts.name); value == "" && opts.required {
+				return fmt.Errorf("decode: missing required header param %s", opts.name)
+			}
 			rhs, err = serializeHeaderParam(r.Header, opts.name, field.Type, opts.style, opts.explode)
 		case _tagKeyCookie:
+			if _, err := r.Cookie(opts.name); errors.Is(err, http.ErrNoCookie) && opts.required {
+				return fmt.Errorf("decode: missing required cookie param %s", opts.name)
+			}
 			rhs, err = serializeHeaderParam(r.Header, opts.name, field.Type, opts.style, opts.explode)
 		}
 		if err != nil {
@@ -53,9 +61,5 @@ func decode[T any](r *http.Request, v *T) error {
 			return err
 		}
 	}
-	// decode payload
-	if r.Body == nil {
-		return nil
-	}
-	return json.NewDecoder(r.Body).Decode(v)
+	return nil
 }

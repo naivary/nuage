@@ -184,6 +184,9 @@ func serializeQueryParamStyleDeepObject(q url.Values, name string, keys []string
 }
 
 func serializeHeaderParam(header http.Header, key string, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
+	if style == "" {
+		style = openapi.StyleSimple
+	}
 	if style != openapi.StyleSimple {
 		return nil, fmt.Errorf("invalid style: %s", style)
 	}

@@ -43,6 +43,9 @@ func buildOperationSpec[I, O any](op *openapi.Operation) error {
 	if err != nil {
 		return err
 	}
+	if op.Responses == nil {
+		op.Responses = make(map[string]*openapi.Response)
+	}
 	op.Responses[strconv.Itoa(responseStatusCode)] = &openapi.Response{
 		Description: responseDesc,
 		Headers:     responseHeaders,

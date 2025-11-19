@@ -26,24 +26,33 @@ type endpoint[I, O any] struct {
 func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	format := r.Header.Get(_headerKeyContentType)
-	_, isSupportedFormat := e.formats[format]
+	formater, isSupportedFormat := e.formats[format]
 	if !isSupportedFormat {
 		// unssuported format
+		e.logger.Error("format not suypported", "format", format)
 		return
 	}
 	err := e.validateParams(r)
 	if err != nil {
+		e.logger.Error(err.Error())
 		return
 	}
 	var input I
-	err = decode(r, &input)
+	err = decodeParams(r, &input)
 	if err != nil {
+		e.logger.Error(err.Error())
+		return
+	}
+	if err := formater.Decode(r.Body, &input); err != nil {
+		// bad request internal error of decoding format
+		e.logger.Error(err.Error())
 		return
 	}
 	err = e.validateRequestBody(input)
 	if err != nil {
 		return
 	}
+	fmt.Println(input)
 	validator, canValidate := any(&input).(Validator)
 	if canValidate {
 		errs := validator.Validate(ctx)
@@ -78,10 +87,12 @@ func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func (e endpoint[I, O]) validateParams(r *http.Request) error {
 	for _, param := range e.doc.Parameters {
-		var value string
+		var value any
 		switch param.ParamIn {
 		case openapi.ParamInHeader:
 			value = r.Header.Get(param.Name)
+		case openapi.ParamInQuery:
+			value = 3
 		}
 		if value == "" && param.Required {
 			return fmt.Errorf("parameter validatin: missing required parameter `%s`", param.Name)

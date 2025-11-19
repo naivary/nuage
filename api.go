@@ -14,8 +14,6 @@ import (
 type APIConfig struct {
 	LoggerOpts *slog.HandlerOptions
 
-	Doc *openapi.OpenAPI
-
 	// Supported formats of the REST API. If the format cannot be found an error
 	// will be returned and not format negotiation can be succesfully completed.
 	Formats map[string]Formater
@@ -43,15 +41,15 @@ type api struct {
 	formats    map[string]Formater
 }
 
-func NewAPI(cfg *APIConfig) (*api, error) {
+func NewAPI(doc *openapi.OpenAPI, cfg *APIConfig) (*api, error) {
 	if cfg == nil {
 		cfg = DefaultAPIConfig()
 	}
-	if cfg.Doc == nil {
+	if doc == nil {
 		return nil, errors.New("new api: missing openapi documentation")
 	}
 	return &api{
-		doc:        cfg.Doc,
+		doc:        doc,
 		mux:        http.NewServeMux(),
 		operations: make(map[string]struct{}),
 		logger:     slog.New(slog.NewJSONHandler(os.Stdout, cfg.LoggerOpts)),
@@ -92,5 +90,10 @@ func Handle[I, O any](api *api, op *openapi.Operation, handler HandlerFuncErr[I,
 	}
 	api.doc.Paths[uri] = pathItem
 	api.mux.Handle(op.Pattern, e)
+	return nil
+}
+
+// TODO: implement it
+func isValidOperation(operations map[string]struct{}, op *openapi.Operation) error {
 	return nil
 }

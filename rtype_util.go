@@ -125,10 +125,6 @@ func newVar(typ reflect.Type) (reflect.Value, bool) {
 	return reflect.New(typ), isPtr
 }
 
-func ptrTo[T any](v T) *T {
-	return &v
-}
-
 func deref(rtype reflect.Type) reflect.Type {
 	if rtype.Kind() == reflect.Pointer {
 		return rtype.Elem()
