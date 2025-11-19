@@ -34,8 +34,6 @@ func TestAPIHandle(t *testing.T) {
 		t.Fatalf("handle: %v", err)
 	}
 
-	
-
 	w := httptest.NewRecorder()
 	data, err := json.Marshal(&requestTypeTest{PlayerName: "nuage"})
 	if err != nil {

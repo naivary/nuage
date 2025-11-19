@@ -1,6 +1,8 @@
 package nuage
 
 import (
+	"bytes"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -25,6 +27,7 @@ type endpoint[I, O any] struct {
 	paramDocs map[string]*openapi.Parameter
 }
 
+// TODO: json schema vlaidation of struct does not work rn
 func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	format := r.Header.Get(_headerKeyContentType)
 	formater, isSupportedFormat := e.formats[format]
@@ -41,6 +44,28 @@ func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	if err := formater.Decode(r.Body, &input); err != nil {
 		// bad request internal error of decoding format
+		e.logger.Error(err.Error())
+		return
+	}
+	mediaType, isMediaTypeExisting := e.doc.RequestBody.Content[format]
+	if !isMediaTypeExisting {
+		// skip validation
+	}
+	resolver, err := mediaType.Schema.Resolve(nil)
+	if err != nil {
+		e.logger.Error(err.Error())
+		return
+	}
+	var buf bytes.Buffer
+	err = formater.Encode(&buf, &input)
+	if err != nil {
+		// internal error
+		e.logger.Error(err.Error())
+		return
+	}
+	fmt.Println(buf.String())
+	if err := resolver.Validate(&input); err != nil {
+		// validation of request body failed
 		e.logger.Error(err.Error())
 		return
 	}
