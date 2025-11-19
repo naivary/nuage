@@ -48,7 +48,7 @@ func NewAPI(doc *openapi.OpenAPI, cfg *APIConfig) (*api, error) {
 		cfg = DefaultAPIConfig()
 	}
 	if doc == nil {
-		return nil, errors.New("new api: missing openapi documentation")
+		return nil, errors.New("new api: initial openapi documenation has to be provided")
 	}
 	return &api{
 		doc:        doc,
@@ -59,20 +59,16 @@ func NewAPI(doc *openapi.OpenAPI, cfg *APIConfig) (*api, error) {
 	}, nil
 }
 
-// TODO: impelemnt is valid operationr as own function
 func Handle[I, O any](api *api, op *openapi.Operation, handler HandlerFuncErr[I, O]) error {
 	if !isStruct[I]() || !isStruct[O]() {
 		return errors.New("handle: both input and output data types have to be of kind struct")
 	}
 	method, uri, isValidPatternSyntax := strings.Cut(op.Pattern, " ")
 	if !isValidPatternSyntax {
-		return fmt.Errorf("invalid pattern syntax: %s", op.Pattern)
+		return fmt.Errorf("handle: invalid pattern syntax `%s`. Make sure to use the standard library syntax of [METHOD ][HOST]/[PATH]", op.Pattern)
 	}
-	if op.OperationID == "" {
-		return fmt.Errorf("handle: operation id missing")
-	}
-	if _, isIDUnique := api.operations[op.OperationID]; isIDUnique {
-		return fmt.Errorf("handle: operation id repeated `%s`", op.OperationID)
+	if err := isValidOperation(api, op); err != nil {
+		return err
 	}
 	api.operations[op.OperationID] = struct{}{}
 	if err := buildOperationSpec[I, O](op); err != nil {
@@ -93,5 +89,18 @@ func Handle[I, O any](api *api, op *openapi.Operation, handler HandlerFuncErr[I,
 	}
 	api.doc.Paths[uri] = pathItem
 	api.mux.Handle(op.Pattern, e)
+	return nil
+}
+
+func isValidOperation(api *api, op *openapi.Operation) error {
+	if op.OperationID == "" {
+		return fmt.Errorf("operation validation: missing operation id")
+	}
+	if _, isIDUnique := api.operations[op.OperationID]; isIDUnique {
+		return fmt.Errorf("operation validation: repeated operation id `%s`", op.OperationID)
+	}
+	if op.Pattern == "" {
+		return fmt.Errorf("operation validation: missing pattern for operation with id `%s`", op.OperationID)
+	}
 	return nil
 }
