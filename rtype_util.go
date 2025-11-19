@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"reflect"
 	"strconv"
+	"time"
 )
 
 func assign(lhs reflect.Value, rhs ...string) error {
@@ -21,12 +22,10 @@ func assign(lhs reflect.Value, rhs ...string) error {
 		return fmt.Errorf("assign: lhs value is invalid %v", lhs)
 	}
 
-	switch deref(lhs.Type()).Kind() {
-	case reflect.Chan, reflect.Func:
-		return fmt.Errorf("assign: kind is unsupported")
-	case reflect.String:
+	switch lhs.Interface().(type) {
+	case string:
 		lhs.SetString(rhs[0])
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+	case int, int8, int16, int32, int64:
 		integer, err := strconv.ParseInt(rhs[0], 10, 64)
 		if err != nil {
 			return err
@@ -35,7 +34,8 @@ func assign(lhs reflect.Value, rhs ...string) error {
 			return fmt.Errorf("overflow: %d to %s", integer, lhs.Kind())
 		}
 		lhs.SetInt(integer)
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return nil
+	case uint, uint8, uint16, uint32, uint64:
 		uinteger, err := strconv.ParseUint(rhs[0], 10, 64)
 		if err != nil {
 			return err
@@ -44,7 +44,8 @@ func assign(lhs reflect.Value, rhs ...string) error {
 			return fmt.Errorf("overflow: %d to %s", uinteger, lhs.Kind())
 		}
 		lhs.SetUint(uinteger)
-	case reflect.Float32, reflect.Float64:
+		return nil
+	case float32, float64:
 		float, err := strconv.ParseFloat(rhs[0], 64)
 		if err != nil {
 			return err
@@ -52,7 +53,8 @@ func assign(lhs reflect.Value, rhs ...string) error {
 		if lhs.OverflowFloat(float) {
 			return fmt.Errorf("overflow: %f to %s", float, lhs.Kind())
 		}
-	case reflect.Complex64, reflect.Complex128:
+		return nil
+	case complex64, complex128:
 		c, err := strconv.ParseComplex(rhs[0], 128)
 		if err != nil {
 			return err
@@ -61,12 +63,25 @@ func assign(lhs reflect.Value, rhs ...string) error {
 			return fmt.Errorf("overflow: %f to %s", c, lhs.Kind())
 		}
 		lhs.SetComplex(c)
-	case reflect.Bool:
+		return nil
+	case bool:
 		boolean, err := strconv.ParseBool(rhs[0])
 		if err != nil {
 			return err
 		}
 		lhs.SetBool(boolean)
+		return nil
+	case time.Time:
+		t, err := time.Parse(time.RFC3339, rhs[0])
+		if err != nil {
+			return err
+		}
+		rvalue := reflect.ValueOf(t)
+		lhs.Set(rvalue)
+		return nil
+	}
+
+	switch lhs.Type().Kind() {
 	case reflect.Slice:
 		elems := make([]reflect.Value, 0, len(rhs))
 		for _, rh := range rhs {
@@ -85,7 +100,7 @@ func assign(lhs reflect.Value, rhs ...string) error {
 		lhs.Set(s)
 	case reflect.Map:
 		if len(rhs)%2 != 0 {
-			return fmt.Errorf("assign: map expects an even number of rhs values. Got: %d", len(rhs))
+			return fmt.Errorf("assign: lhs kind of map expects an even number of rhs values. Got: %d", len(rhs))
 		}
 		key, isKeyPtr := newVar(lhs.Type().Key())
 		value, isValuePtr := newVar(lhs.Type().Elem())
@@ -110,10 +125,8 @@ func assign(lhs reflect.Value, rhs ...string) error {
 			}
 			lhs.SetMapIndex(k, v)
 		}
-	default:
-		return fmt.Errorf("cannot assign: %s to %s", rhs, lhs)
 	}
-	return nil
+	return fmt.Errorf("cannot assign: %s to %v", rhs, lhs)
 }
 
 // newVar returns a new reflect.Value based on the given reflect.Type and
@@ -132,13 +145,6 @@ func deref(rtype reflect.Type) reflect.Type {
 		return rtype.Elem()
 	}
 	return rtype
-}
-
-func derefValue(rvalue reflect.Value) reflect.Value {
-	if isPointer(rvalue.Type()) {
-		rvalue = rvalue.Elem()
-	}
-	return rvalue
 }
 
 func isPointer(rtype reflect.Type) bool {

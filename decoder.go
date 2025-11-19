@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
+
+	"github.com/naivary/nuage/openapi"
 )
 
-func decodeParams[T any](r *http.Request, v *T) error {
+func decodeParams[T any](r *http.Request, paramDocs map[string]*openapi.Parameter, v *T) error {
 	rvalue := reflect.ValueOf(v).Elem()
 	rtype := rvalue.Type()
 	if !isStruct[T]() {
@@ -48,8 +50,8 @@ func decodeParams[T any](r *http.Request, v *T) error {
 			}
 			rhs, err = serializeHeaderParam(r.Header, opts.name, field.Type, opts.style, opts.explode)
 		case _tagKeyCookie:
-			cookie, err := r.Cookie(opts.name)
-			if errors.Is(err, http.ErrNoCookie) && opts.required {
+			cookie, errCookie := r.Cookie(opts.name)
+			if errors.Is(errCookie, http.ErrNoCookie) && opts.required {
 				return fmt.Errorf("decode: missing required cookie param %s", opts.name)
 			}
 			rhs, err = serializeCookieParam(cookie, field.Type, opts.style, opts.explode)
@@ -57,8 +59,15 @@ func decodeParams[T any](r *http.Request, v *T) error {
 		if err != nil {
 			return err
 		}
-		err = assign(fieldValue, rhs...)
+		if err := assign(fieldValue, rhs...); err != nil {
+			return err
+		}
+		// validate against parameter schema
+		resolver, err := paramDocs[opts.name].Schema.Resolve(nil)
 		if err != nil {
+			return err
+		}
+		if err := resolver.Validate(fieldValue.Interface()); err != nil {
 			return err
 		}
 	}

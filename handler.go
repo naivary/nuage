@@ -21,6 +21,8 @@ type endpoint[I, O any] struct {
 	doc     *openapi.Operation
 	logger  *slog.Logger
 	formats map[string]Formater
+
+	paramDocs map[string]*openapi.Parameter
 }
 
 func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -32,7 +34,7 @@ func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var input I
-	err := decodeParams(r, &input)
+	err := decodeParams(r, e.paramDocsMap(), &input)
 	if err != nil {
 		e.logger.Error(err.Error())
 		return
@@ -42,4 +44,16 @@ func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		e.logger.Error(err.Error())
 		return
 	}
+}
+
+func (e *endpoint[I, O]) paramDocsMap() map[string]*openapi.Parameter {
+	if e.paramDocs != nil {
+		return e.paramDocs
+	}
+	m := make(map[string]*openapi.Parameter, len(e.doc.Parameters))
+	for _, param := range e.doc.Parameters {
+		m[param.Name] = param
+	}
+	e.paramDocs = m
+	return m
 }
