@@ -21,7 +21,7 @@ import (
 // Example usage:
 //
 //	type GetUserInput struct {
-//	    UserID string `path:"user_id" json:"-"`
+//	    UserID string `path:"userID" json:"-"`
 //	    Filter string `query:"filter,omitempty" json:"-"`
 //	}
 //
@@ -100,7 +100,7 @@ func newHeaderParam(opts *paramTagOpts) (*openapi.Parameter, error) {
 	// Header key must be canonical
 	canonicalName := http.CanonicalHeaderKey(opts.name)
 	if canonicalName != opts.name {
-		return nil, fmt.Errorf("header name is not canonical: %s. Change it to: %s", opts.name, canonicalName)
+		return nil, fmt.Errorf("header parameter: name is not canonical. Change it to: %s", canonicalName)
 	}
 	return &openapi.Parameter{
 		ParamIn:    openapi.ParamInHeader,
