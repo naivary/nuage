@@ -55,6 +55,8 @@ func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		e.logger.Error(err.Error())
 		return
 	}
+	err = resolver.Validate(&input)
+	e.logger.Error(err.Error())
 }
 
 func (e *endpoint[I, O]) paramDocsMap() map[string]*openapi.Parameter {

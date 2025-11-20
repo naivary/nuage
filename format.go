@@ -10,6 +10,8 @@ type Formater interface {
 	Encode(w io.Writer, v any) error
 }
 
+var _ Formater = (*JSONFormater)(nil)
+
 type JSONFormater struct{}
 
 func (j JSONFormater) Decode(r io.Reader, v any) error {
