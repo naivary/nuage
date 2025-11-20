@@ -10,14 +10,14 @@ type Formater interface {
 	Encode(w io.Writer, v any) error
 }
 
-var _ Formater = (*JSONFormater)(nil)
+var _ Formater = (*jsonFormater)(nil)
 
-type JSONFormater struct{}
+type jsonFormater struct{}
 
-func (j JSONFormater) Decode(r io.Reader, v any) error {
+func (j jsonFormater) Decode(r io.Reader, v any) error {
 	return json.NewDecoder(r).Decode(&v)
 }
 
-func (j JSONFormater) Encode(w io.Writer, v any) error {
+func (j jsonFormater) Encode(w io.Writer, v any) error {
 	return json.NewEncoder(w).Encode(&v)
 }

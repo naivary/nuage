@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
 	"os"
 	"strings"
@@ -19,8 +20,6 @@ type APIConfig struct {
 	// Supported formats of the REST API. If the format cannot be found an error
 	// will be returned and not format negotiation can be succesfully completed.
 	Formats map[string]Formater
-
-	DefaultFormat string
 }
 
 func DefaultAPIConfig() *APIConfig {
@@ -29,9 +28,8 @@ func DefaultAPIConfig() *APIConfig {
 			AddSource: true,
 		},
 		Formats: map[string]Formater{
-			ContentTypeJSON: &JSONFormater{},
+			ContentTypeJSON: &jsonFormater{},
 		},
-		DefaultFormat: ContentTypeJSON,
 	}
 }
 
@@ -50,13 +48,17 @@ func NewAPI(doc *openapi.OpenAPI, cfg *APIConfig) (*api, error) {
 	if doc == nil {
 		return nil, errors.New("new api: `doc` cannot be nil")
 	}
-	return &api{
+	a := &api{
 		doc:        doc,
 		mux:        http.NewServeMux(),
-		operations: make(map[string]struct{}),
+		operations: make(map[string]struct{}, 1),
 		logger:     slog.New(slog.NewJSONHandler(os.Stdout, cfg.LoggerOpts)),
-		formats:    cfg.Formats,
-	}, nil
+		formats: map[string]Formater{
+			ContentTypeJSON: &jsonFormater{},
+		},
+	}
+	maps.Copy(a.formats, cfg.Formats)
+	return a, nil
 }
 
 func Handle[I, O any](api *api, op *openapi.Operation, handler HandlerFuncErr[I, O]) error {
