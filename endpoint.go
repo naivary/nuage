@@ -1,6 +1,8 @@
 package nuage
 
 import (
+	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -25,14 +27,12 @@ type endpoint[I, O any] struct {
 	paramDocs map[string]*openapi.Parameter
 }
 
-// TODO: json schema vlaidation of struct does not work rn. what is the best
-// approach?
 func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	format := r.Header.Get(_headerKeyContentType)
 	formater, isSupportedFormat := e.formats[format]
 	if !isSupportedFormat {
 		// unssuported format
-		e.logger.Error("format not suypported", "format", format)
+		e.logger.Error("format not supported", "format", format)
 		return
 	}
 	var input I
@@ -46,17 +46,25 @@ func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		e.logger.Error(err.Error())
 		return
 	}
-	mediaType, isMediaTypeExisting := e.doc.RequestBody.Content[format]
-	if !isMediaTypeExisting {
-		// skip validation
+	resolver, err := e.doc.RequestBody.Content[format].Schema.Resolve(nil)
+	if err != nil {
+		// internal error cannot resolve schema
+		e.logger.Error(err.Error())
 	}
-	resolver, err := mediaType.Schema.Resolve(nil)
+	m, err := structToMap(&input)
+	if err != nil {
+		// internal error: struct to map conversion failed
+		e.logger.Error(err.Error())
+	}
+	err = resolver.Validate(m)
 	if err != nil {
 		e.logger.Error(err.Error())
-		return
 	}
-	err = resolver.Validate(&input)
-	e.logger.Error(err.Error())
+	_, err = e.handler(r, &input)
+	if err != nil {
+		// error from the handler ahs to be HTTPError as by RFC 9457
+		e.logger.Error(err.Error())
+	}
 }
 
 func (e *endpoint[I, O]) paramDocsMap() map[string]*openapi.Parameter {
@@ -69,4 +77,16 @@ func (e *endpoint[I, O]) paramDocsMap() map[string]*openapi.Parameter {
 	}
 	e.paramDocs = m
 	return m
+}
+
+func structToMap[S any](v *S) (map[string]any, error) {
+	if !isStruct[S]() {
+		return nil, fmt.Errorf("struct to map: type is not struct")
+	}
+	m := make(map[string]any)
+	data, err := json.Marshal(v)
+	if err != nil {
+		return nil, err
+	}
+	return m, json.Unmarshal(data, &m)
 }

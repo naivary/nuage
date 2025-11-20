@@ -18,9 +18,9 @@ type Operation struct {
 	// nuage specific fields which are not compatible to the openapi spec
 
 	// Pattern to register the handler endpoint
-	Pattern string
+	Pattern string `json:"-"`
 	// ContentType of this specific operation.
-	ContentType string
+	ContentType string `json:"-"`
 }
 
 func (o *Operation) GetParamSchema(name string, in ParamIn) *jsonschema.Schema {

@@ -9,7 +9,7 @@ import (
 	"github.com/naivary/nuage/openapi"
 )
 
-func buildOperationSpec[I, O any](op *openapi.Operation) error {
+func operationSpecFor[I, O any](op *openapi.Operation) error {
 	paramSpecs, err := paramSpecsFor[I]()
 	if err != nil {
 		return err
@@ -31,6 +31,7 @@ func buildOperationSpec[I, O any](op *openapi.Operation) error {
 	if err != nil {
 		return err
 	}
+
 	var output O
 	responser, isResponser := any(output).(Responser)
 	responseDesc := "Successfull Request!"
@@ -39,7 +40,7 @@ func buildOperationSpec[I, O any](op *openapi.Operation) error {
 		responseDesc = responser.Description()
 		responseStatusCode = responser.StatusCode()
 	}
-	responseHeaders, err := responseHeaderSpecs[O]()
+	responseHeaders, err := responseHeadersFor[O]()
 	if err != nil {
 		return err
 	}
@@ -58,7 +59,7 @@ func buildOperationSpec[I, O any](op *openapi.Operation) error {
 	return nil
 }
 
-func responseHeaderSpecs[O any]() (map[string]*openapi.Parameter, error) {
+func responseHeadersFor[O any]() (map[string]*openapi.Parameter, error) {
 	fields, err := fieldsOf[O]()
 	if err != nil {
 		return nil, err

@@ -20,6 +20,8 @@ type APIConfig struct {
 	// Supported formats of the REST API. If the format cannot be found an error
 	// will be returned and not format negotiation can be succesfully completed.
 	Formats map[string]Formater
+
+	DefaultContentType string
 }
 
 func DefaultAPIConfig() *APIConfig {
@@ -30,6 +32,7 @@ func DefaultAPIConfig() *APIConfig {
 		Formats: map[string]Formater{
 			ContentTypeJSON: &jsonFormater{},
 		},
+		DefaultContentType: ContentTypeJSON,
 	}
 }
 
@@ -72,8 +75,7 @@ func Handle[I, O any](api *api, op *openapi.Operation, handler HandlerFuncErr[I,
 	if err := isValidOperation(api, op); err != nil {
 		return err
 	}
-	api.operations[op.OperationID] = struct{}{}
-	if err := buildOperationSpec[I, O](op); err != nil {
+	if err := operationSpecFor[I, O](op); err != nil {
 		return err
 	}
 	e := &endpoint[I, O]{
@@ -89,6 +91,7 @@ func Handle[I, O any](api *api, op *openapi.Operation, handler HandlerFuncErr[I,
 	if err := pathItem.AddOperation(method, op); err != nil {
 		return err
 	}
+	api.operations[op.OperationID] = struct{}{}
 	api.doc.Paths[uri] = pathItem
 	api.mux.Handle(op.Pattern, e)
 	return nil

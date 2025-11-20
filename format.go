@@ -6,18 +6,18 @@ import (
 )
 
 type Formater interface {
-	Decode(r io.Reader, v any) error
-	Encode(w io.Writer, v any) error
+	Decode(r io.Reader, value any) error
+	Encode(w io.Writer, value any) error
 }
 
 var _ Formater = (*jsonFormater)(nil)
 
 type jsonFormater struct{}
 
-func (j jsonFormater) Decode(r io.Reader, v any) error {
-	return json.NewDecoder(r).Decode(&v)
+func (j jsonFormater) Decode(r io.Reader, value any) error {
+	return json.NewDecoder(r).Decode(&value)
 }
 
-func (j jsonFormater) Encode(w io.Writer, v any) error {
-	return json.NewEncoder(w).Encode(&v)
+func (j jsonFormater) Encode(w io.Writer, value any) error {
+	return json.NewEncoder(w).Encode(&value)
 }
