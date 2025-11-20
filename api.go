@@ -48,7 +48,7 @@ func NewAPI(doc *openapi.OpenAPI, cfg *APIConfig) (*api, error) {
 		cfg = DefaultAPIConfig()
 	}
 	if doc == nil {
-		return nil, errors.New("new api: initial openapi documenation has to be provided")
+		return nil, errors.New("new api: `doc` cannot be nil")
 	}
 	return &api{
 		doc:        doc,

@@ -26,7 +26,7 @@ type endpoint[I, O any] struct {
 }
 
 // TODO: json schema vlaidation of struct does not work rn. what is the best
-// apparoach?
+// approach?
 func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	format := r.Header.Get(_headerKeyContentType)
 	formater, isSupportedFormat := e.formats[format]
