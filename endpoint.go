@@ -27,6 +27,7 @@ type endpoint[I, O any] struct {
 	paramDocs map[string]*openapi.Parameter
 }
 
+// use transformer model to add $schema to the response struct
 func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	format := r.Header.Get(_headerKeyContentType)
 	formater, isSupportedFormat := e.formats[format]

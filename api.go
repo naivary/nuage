@@ -64,6 +64,8 @@ func NewAPI(doc *openapi.OpenAPI, cfg *APIConfig) (*api, error) {
 	return a, nil
 }
 
+// TODO: check if request input struct has path parameters which are defined in
+// the path also in the pattern.
 func Handle[I, O any](api *api, op *openapi.Operation, handler HandlerFuncErr[I, O]) error {
 	if !isStruct[I]() || !isStruct[O]() {
 		return errors.New("handle: both input and output data types have to be of kind struct")
