@@ -1,5 +1,5 @@
 //go:generate go tool go-enum --marshal --nocomments
-package openapi
+package nuage
 
 import (
 	"fmt"
@@ -8,16 +8,18 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
+const _openAPIVersion = "3.1.0"
+
 // ENUM(MIT, Apache-2.0)
 type LicenseKeyword string
 
 // ENUM(APIKey, HTTP, MutualTLS, OAuth2, OpenIDConnect)
 type SecurityType string
 
-// ENUM(Matrix, Label, Simple, Form, SpaceDelim, PipeDelim, DeepObject, Cookie)
+// ENUM(matrix, label, simple, form, spaceDelim, pipeDelim, deepObject, cookie)
 type Style string
 
-// ENUM(Path, Query, Header, Cookie)
+// ENUM(path, query, header, cookie)
 type ParamIn string
 
 type SecurityRequirement map[string][]string
@@ -32,9 +34,9 @@ type OpenAPI struct {
 	Components        *Components          `json:"components,omitempty"`
 }
 
-func New(version string, info *Info) *OpenAPI {
+func NewOpenAPI(info *Info) *OpenAPI {
 	return &OpenAPI{
-		Version: version,
+		Version: _openAPIVersion,
 		Info:    info,
 		Paths:   make(map[string]*PathItem),
 	}
@@ -104,18 +106,6 @@ type RequestBody struct {
 	Description string                `json:"description,omitempty"`
 	Required    bool                  `json:"required"`
 	Content     map[string]*MediaType `json:"content,omitempty"`
-}
-
-type Parameter struct {
-	Name        string             `json:"name,omitempty"`
-	ParamIn     ParamIn            `json:"in,omitempty"`
-	Description string             `json:"description,omitempty"`
-	Required    bool               `json:"required,omitempty"`
-	Deprecated  bool               `json:"deprecated,omitempty"`
-	Example     any                `json:"example,omitempty"`
-	Schema      *jsonschema.Schema `json:"schema,omitempty"`
-	Style       Style              `json:"style,omitempty"`
-	Explode     bool               `json:"explode,omitempty"`
 }
 
 type Response struct {

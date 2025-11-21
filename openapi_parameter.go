@@ -6,9 +6,19 @@ import (
 	"net/http"
 
 	"github.com/google/jsonschema-go/jsonschema"
-
-	"github.com/naivary/nuage/openapi"
 )
+
+type Parameter struct {
+	Name        string             `json:"name,omitempty"`
+	ParamIn     ParamIn            `json:"in,omitempty"`
+	Description string             `json:"description,omitempty"`
+	Required    bool               `json:"required,omitempty"`
+	Deprecated  bool               `json:"deprecated,omitempty"`
+	Example     any                `json:"example,omitempty"`
+	Schema      *jsonschema.Schema `json:"schema,omitempty"`
+	Style       Style              `json:"style,omitempty"`
+	Explode     bool               `json:"explode,omitempty"`
+}
 
 // paramSpecsFor generates a list of OpenAPI parameter specifications for a given
 // Go struct type `I`. It inspects the struct fields tags and derives parameter definitions
@@ -29,9 +39,9 @@ import (
 //	if err != nil {
 //	    log.Fatal(err)
 //	}
-func paramSpecsFor[I any]() ([]*openapi.Parameter, error) {
+func paramSpecsFor[I any]() ([]*Parameter, error) {
 	fields, err := fieldsOf[I]()
-	params := make([]*openapi.Parameter, 0, len(fields))
+	params := make([]*Parameter, 0, len(fields))
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +62,7 @@ func paramSpecsFor[I any]() ([]*openapi.Parameter, error) {
 			return nil, err
 		}
 		var (
-			param       *openapi.Parameter
+			param       *Parameter
 			newParamErr error
 		)
 		switch opts.tagKey {
@@ -70,22 +80,21 @@ func paramSpecsFor[I any]() ([]*openapi.Parameter, error) {
 		}
 		param.Schema = schema
 		params = append(params, param)
-
 	}
 	return params, nil
 }
 
-func newPathParam(opts *paramTagOpts) (*openapi.Parameter, error) {
+func newPathParam(opts *paramTagOpts) (*Parameter, error) {
 	if opts.style == "" {
-		opts.style = openapi.StyleSimple
+		opts.style = StyleSimple
 	}
 	switch opts.style {
-	case openapi.StyleSimple, openapi.StyleLabel, openapi.StyleMatrix:
+	case StyleSimple, StyleLabel, StyleMatrix:
 	default:
 		return nil, fmt.Errorf("path parameter: invalid style `%s`", opts.style)
 	}
-	return &openapi.Parameter{
-		ParamIn:    openapi.ParamInPath,
+	return &Parameter{
+		ParamIn:    ParamInPath,
 		Name:       opts.name,
 		Deprecated: opts.deprecated,
 		Style:      opts.style,
@@ -96,38 +105,38 @@ func newPathParam(opts *paramTagOpts) (*openapi.Parameter, error) {
 	}, nil
 }
 
-func newHeaderParam(opts *paramTagOpts) (*openapi.Parameter, error) {
+func newHeaderParam(opts *paramTagOpts) (*Parameter, error) {
 	// Header key must be canonical
 	canonicalName := http.CanonicalHeaderKey(opts.name)
 	if canonicalName != opts.name {
 		return nil, fmt.Errorf("header parameter: name is not canonical. Change it to: %s", canonicalName)
 	}
-	return &openapi.Parameter{
-		ParamIn:    openapi.ParamInHeader,
+	return &Parameter{
+		ParamIn:    ParamInHeader,
 		Name:       canonicalName,
 		Deprecated: opts.deprecated,
 		// Headers are always style simple
-		Style:    openapi.StyleSimple,
+		Style:    StyleSimple,
 		Required: opts.required,
 		Example:  opts.example,
 	}, nil
 }
 
-func newQueryParam(opts *paramTagOpts) (*openapi.Parameter, error) {
+func newQueryParam(opts *paramTagOpts) (*Parameter, error) {
 	if opts.style == "" {
-		opts.style = openapi.StyleForm
+		opts.style = StyleForm
 		opts.explode = true
 	}
 	switch opts.style {
-	case openapi.StyleForm, openapi.StyleSpaceDelim, openapi.StylePipeDelim, openapi.StyleDeepObject:
+	case StyleForm, StyleSpaceDelim, StylePipeDelim, StyleDeepObject:
 	default:
 		return nil, fmt.Errorf("query param: invalid style `%s`", &opts.style)
 	}
-	if opts.style == openapi.StyleDeepObject {
+	if opts.style == StyleDeepObject {
 		opts.explode = true
 	}
-	return &openapi.Parameter{
-		ParamIn:    openapi.ParamInQuery,
+	return &Parameter{
+		ParamIn:    ParamInQuery,
 		Name:       opts.name,
 		Deprecated: opts.deprecated,
 		Style:      opts.style,
@@ -137,12 +146,12 @@ func newQueryParam(opts *paramTagOpts) (*openapi.Parameter, error) {
 	}, nil
 }
 
-func newCookieParam(opts *paramTagOpts) (*openapi.Parameter, error) {
-	return &openapi.Parameter{
-		ParamIn:    openapi.ParamInCookie,
+func newCookieParam(opts *paramTagOpts) (*Parameter, error) {
+	return &Parameter{
+		ParamIn:    ParamInCookie,
 		Name:       opts.name,
 		Deprecated: opts.deprecated,
-		Style:      openapi.StyleForm,
+		Style:      StyleForm,
 		Required:   opts.required,
 		Example:    opts.example,
 	}, nil

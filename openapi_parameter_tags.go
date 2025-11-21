@@ -6,8 +6,6 @@ import (
 	"reflect"
 	"slices"
 	"strings"
-
-	"github.com/naivary/nuage/openapi"
 )
 
 var errTagNotFound = errors.New("tag not found")
@@ -40,7 +38,7 @@ type paramTagOpts struct {
 	required   bool
 	explode    bool
 	deprecated bool
-	style      openapi.Style
+	style      Style
 	example    string
 
 	// query param
@@ -81,10 +79,10 @@ func parseParamTagOpts(field reflect.StructField) (*paramTagOpts, error) {
 	opts.example = exampleTagValue
 
 	styleTagValue, ok := field.Tag.Lookup(_tagKeyParamStyle)
-	if ok && !openapi.Style(styleTagValue).IsValid() {
+	opts.style = Style(styleTagValue)
+	if ok && !opts.style.IsValid() {
 		return nil, fmt.Errorf("invalid param style: %s in %v", paramTagKey, field)
 	}
-	opts.style = openapi.Style(styleTagValue)
 
 	queryKeys, ok := field.Tag.Lookup(_tagKeyQueryKeys)
 	if ok && queryKeys == "" {

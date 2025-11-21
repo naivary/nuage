@@ -3,7 +3,7 @@
 
 // Built By: go install
 
-package openapi
+package nuage
 
 import (
 	"errors"
@@ -66,10 +66,10 @@ func (x *LicenseKeyword) AppendText(b []byte) ([]byte, error) {
 }
 
 const (
-	ParamInPath   ParamIn = "Path"
-	ParamInQuery  ParamIn = "Query"
-	ParamInHeader ParamIn = "Header"
-	ParamInCookie ParamIn = "Cookie"
+	ParamInPath   ParamIn = "path"
+	ParamInQuery  ParamIn = "query"
+	ParamInHeader ParamIn = "header"
+	ParamInCookie ParamIn = "cookie"
 )
 
 var ErrInvalidParamIn = errors.New("not a valid ParamIn")
@@ -87,10 +87,10 @@ func (x ParamIn) IsValid() bool {
 }
 
 var _ParamInValue = map[string]ParamIn{
-	"Path":   ParamInPath,
-	"Query":  ParamInQuery,
-	"Header": ParamInHeader,
-	"Cookie": ParamInCookie,
+	"path":   ParamInPath,
+	"query":  ParamInQuery,
+	"header": ParamInHeader,
+	"cookie": ParamInCookie,
 }
 
 // ParseParamIn attempts to convert a string to a ParamIn.
@@ -186,14 +186,14 @@ func (x *SecurityType) AppendText(b []byte) ([]byte, error) {
 }
 
 const (
-	StyleMatrix     Style = "Matrix"
-	StyleLabel      Style = "Label"
-	StyleSimple     Style = "Simple"
-	StyleForm       Style = "Form"
-	StyleSpaceDelim Style = "SpaceDelim"
-	StylePipeDelim  Style = "PipeDelim"
-	StyleDeepObject Style = "DeepObject"
-	StyleCookie     Style = "Cookie"
+	StyleMatrix     Style = "matrix"
+	StyleLabel      Style = "label"
+	StyleSimple     Style = "simple"
+	StyleForm       Style = "form"
+	StyleSpaceDelim Style = "spaceDelim"
+	StylePipeDelim  Style = "pipeDelim"
+	StyleDeepObject Style = "deepObject"
+	StyleCookie     Style = "cookie"
 )
 
 var ErrInvalidStyle = errors.New("not a valid Style")
@@ -211,14 +211,14 @@ func (x Style) IsValid() bool {
 }
 
 var _StyleValue = map[string]Style{
-	"Matrix":     StyleMatrix,
-	"Label":      StyleLabel,
-	"Simple":     StyleSimple,
-	"Form":       StyleForm,
-	"SpaceDelim": StyleSpaceDelim,
-	"PipeDelim":  StylePipeDelim,
-	"DeepObject": StyleDeepObject,
-	"Cookie":     StyleCookie,
+	"matrix":     StyleMatrix,
+	"label":      StyleLabel,
+	"simple":     StyleSimple,
+	"form":       StyleForm,
+	"spaceDelim": StyleSpaceDelim,
+	"pipeDelim":  StylePipeDelim,
+	"deepObject": StyleDeepObject,
+	"cookie":     StyleCookie,
 }
 
 // ParseStyle attempts to convert a string to a Style.
