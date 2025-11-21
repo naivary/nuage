@@ -1,8 +1,6 @@
 package nuage
 
 import (
-	"encoding/json"
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -47,6 +45,9 @@ func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		e.logger.Error(err.Error())
 		return
 	}
+	if !isContentTypeJSON(format) {
+		// skip json schema validation
+	}
 	resolver, err := e.doc.RequestBody.Content[format].Schema.Resolve(nil)
 	if err != nil {
 		// internal error cannot resolve schema
@@ -78,16 +79,4 @@ func (e *endpoint[I, O]) paramDocsMap() map[string]*openapi.Parameter {
 	}
 	e.paramDocs = m
 	return m
-}
-
-func structToMap[S any](v *S) (map[string]any, error) {
-	if !isStruct[S]() {
-		return nil, fmt.Errorf("struct to map: type is not struct")
-	}
-	m := make(map[string]any)
-	data, err := json.Marshal(v)
-	if err != nil {
-		return nil, err
-	}
-	return m, json.Unmarshal(data, &m)
 }

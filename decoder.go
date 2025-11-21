@@ -36,23 +36,23 @@ func decodeParams[T any](r *http.Request, paramDocs map[string]*openapi.Paramete
 		case _tagKeyPath:
 			slug := r.PathValue(opts.name)
 			if slug == "" && opts.required {
-				return fmt.Errorf("decode: missing required path param %s", opts.name)
+				return fmt.Errorf("decode params: missing required path param %s", opts.name)
 			}
 			rhs, err = serializePathParam(slug, field.Type, opts.style, opts.explode)
 		case _tagKeyQuery:
 			if !r.URL.Query().Has(opts.name) && opts.required {
-				return fmt.Errorf("decode: missing required query param %s", opts.name)
+				return fmt.Errorf("decode params: missing required query param %s", opts.name)
 			}
 			rhs, err = serializeQueryParam(r.URL.Query(), opts.name, opts.queryKeys, field.Type, opts.style, opts.explode)
 		case _tagKeyHeader:
 			if value := r.Header.Get(opts.name); value == "" && opts.required {
-				return fmt.Errorf("decode: missing required header param %s", opts.name)
+				return fmt.Errorf("decode params: missing required header param %s", opts.name)
 			}
 			rhs, err = serializeHeaderParam(r.Header, opts.name, field.Type, opts.style, opts.explode)
 		case _tagKeyCookie:
 			cookie, errCookie := r.Cookie(opts.name)
 			if errors.Is(errCookie, http.ErrNoCookie) && opts.required {
-				return fmt.Errorf("decode: missing required cookie param %s", opts.name)
+				return fmt.Errorf("decode params: missing required cookie param %s", opts.name)
 			}
 			rhs, err = serializeCookieParam(cookie, field.Type, opts.style, opts.explode)
 		}
