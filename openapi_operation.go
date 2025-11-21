@@ -3,9 +3,6 @@ package nuage
 import (
 	"errors"
 	"net/http"
-	"strconv"
-
-	"github.com/google/jsonschema-go/jsonschema"
 )
 
 type Operation struct {
@@ -71,41 +68,6 @@ func operationSpecFor[I, O any](op *Operation) error {
 		return err
 	}
 	op.Parameters = paramSpecs
-
-	requestSchema, err := jsonschema.For[I](nil)
-	if err != nil {
-		return err
-	}
-	op.RequestBody = &RequestBody{
-		Description: op.RequestDesc,
-		Required:    op.IsRequestBodyRequired,
-		Content: map[string]*MediaType{
-			op.RequestContentType: {Schema: requestSchema},
-		},
-	}
-
-	responseSchema, err := jsonschema.For[O](nil)
-	if err != nil {
-		return err
-	}
-
-	responseHeaders, err := responseHeadersFor[O]()
-	if err != nil {
-		return err
-	}
-	if op.Responses == nil {
-		op.Responses = make(map[string]*Response)
-	}
-	statusCode := strconv.Itoa(op.ResponseStatusCode)
-	op.Responses[statusCode] = &Response{
-		Description: op.ResponseDesc,
-		Headers:     responseHeaders,
-		Content: map[string]*MediaType{
-			op.ResponseContentType: {
-				Schema: responseSchema,
-			},
-		},
-	}
 	return nil
 }
 
