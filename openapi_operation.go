@@ -1,4 +1,4 @@
-package openapi
+package nuage
 
 import "github.com/google/jsonschema-go/jsonschema"
 

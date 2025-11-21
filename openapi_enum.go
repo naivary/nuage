@@ -3,7 +3,7 @@
 
 // Built By: go install
 
-package openapi
+package nuage
 
 import (
 	"errors"

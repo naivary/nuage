@@ -7,7 +7,6 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 
 	"github.com/naivary/nuage/nuagetest"
-	"github.com/naivary/nuage/openapi"
 )
 
 type decodeParamsRequestTypeTest struct {
@@ -45,7 +44,7 @@ func TestDecodeParams(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			var input decodeParamsRequestTypeTest
-			err := decodeParams(tc.r, map[string]*openapi.Parameter{
+			err := decodeParams(tc.r, map[string]*Parameter{
 				"p1": {Schema: jsonSchemaFor[int]()},
 			}, &input)
 			if err != nil && !tc.isInvalid {

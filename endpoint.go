@@ -3,8 +3,6 @@ package nuage
 import (
 	"log/slog"
 	"net/http"
-
-	"github.com/naivary/nuage/openapi"
 )
 
 const _headerKeyContentType = "Content-Type"
@@ -18,11 +16,11 @@ type HandlerFuncErr[I, O any] func(r *http.Request, input *I) (*O, error)
 
 type endpoint[I, O any] struct {
 	handler HandlerFuncErr[I, O]
-	doc     *openapi.Operation
+	doc     *Operation
 	logger  *slog.Logger
 	formats map[string]Formater
 
-	paramDocs map[string]*openapi.Parameter
+	paramDocs map[string]*Parameter
 }
 
 // use transformer model to add $schema to the response struct
@@ -69,11 +67,11 @@ func (e endpoint[I, O]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (e *endpoint[I, O]) paramDocsMap() map[string]*openapi.Parameter {
+func (e *endpoint[I, O]) paramDocsMap() map[string]*Parameter {
 	if e.paramDocs != nil {
 		return e.paramDocs
 	}
-	m := make(map[string]*openapi.Parameter, len(e.doc.Parameters))
+	m := make(map[string]*Parameter, len(e.doc.Parameters))
 	for _, param := range e.doc.Parameters {
 		m[param.Name] = param
 	}

@@ -7,24 +7,22 @@ import (
 	"reflect"
 	"slices"
 	"strings"
-
-	"github.com/naivary/nuage/openapi"
 )
 
-func serializePathParam(v string, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
+func serializePathParam(v string, typ reflect.Type, style Style, explode bool) ([]string, error) {
 	if v == "" {
 		return []string{}, nil
 	}
 	if style == "" {
-		style = openapi.StyleSimple
+		style = StyleSimple
 	}
 	kind := deref(typ).Kind()
 	switch style {
-	case openapi.StyleSimple:
+	case StyleSimple:
 		return serializePathParamStyleSimple(v, kind, explode)
-	case openapi.StyleLabel:
+	case StyleLabel:
 		return serializePathParamStyleLabel(v, kind, explode)
-	case openapi.StyleMatrix:
+	case StyleMatrix:
 		return serializePathParamStyleMatrix(v, kind, explode)
 	}
 	return nil, fmt.Errorf("serialize path param: invalid style %s", style)
@@ -116,24 +114,24 @@ func pathParamKeyValuePairs(v, sep string) ([]string, error) {
 	return values, nil
 }
 
-func serializeQueryParam(q url.Values, name string, keys []string, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
+func serializeQueryParam(q url.Values, name string, keys []string, typ reflect.Type, style Style, explode bool) ([]string, error) {
 	if style == "" {
-		style = openapi.StyleForm
+		style = StyleForm
 	}
 
 	typ = deref(typ)
 	switch style {
-	case openapi.StyleForm:
+	case StyleForm:
 		return serializeQueryParamStyleForm(q, name, keys, typ.Kind(), explode)
-	case openapi.StyleDeepObject:
+	case StyleDeepObject:
 		return serializeQueryParamStyleDeepObject(q, name, keys, typ.Kind(), explode)
-	case openapi.StyleSpaceDelim:
+	case StyleSpaceDelim:
 		if explode {
 			return q[name], nil
 		}
 		value := q.Get(name)
 		return strings.Split(value, " "), nil
-	case openapi.StylePipeDelim:
+	case StylePipeDelim:
 		if explode {
 			return q[name], nil
 		}
@@ -183,11 +181,11 @@ func serializeQueryParamStyleDeepObject(q url.Values, name string, keys []string
 	return values, nil
 }
 
-func serializeHeaderParam(header http.Header, key string, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
+func serializeHeaderParam(header http.Header, key string, typ reflect.Type, style Style, explode bool) ([]string, error) {
 	if style == "" {
-		style = openapi.StyleSimple
+		style = StyleSimple
 	}
-	if style != openapi.StyleSimple {
+	if style != StyleSimple {
 		return nil, fmt.Errorf("invalid style: %s", style)
 	}
 	typ = deref(typ)
@@ -204,8 +202,8 @@ func serializeHeaderParam(header http.Header, key string, typ reflect.Type, styl
 	return nil, fmt.Errorf("invalid kind: %v", typ.Kind())
 }
 
-func serializeCookieParam(cookie *http.Cookie, typ reflect.Type, style openapi.Style, explode bool) ([]string, error) {
-	if style != openapi.StyleForm {
+func serializeCookieParam(cookie *http.Cookie, typ reflect.Type, style Style, explode bool) ([]string, error) {
+	if style != StyleForm {
 		return nil, fmt.Errorf("invalid style: %s", style)
 	}
 	typ = deref(typ)

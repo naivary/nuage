@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"net/http"
 	"reflect"
-
-	"github.com/naivary/nuage/openapi"
 )
 
-func decodeParams[T any](r *http.Request, paramDocs map[string]*openapi.Parameter, v *T) error {
+func decodeParams[T any](r *http.Request, paramDocs map[string]*Parameter, v *T) error {
 	rvalue := reflect.ValueOf(v).Elem()
 	rtype := rvalue.Type()
 	if !isStruct[T]() {

@@ -1,5 +1,5 @@
 //go:generate go tool go-enum --marshal --nocomments
-package openapi
+package nuage
 
 import (
 	"fmt"
@@ -32,7 +32,7 @@ type OpenAPI struct {
 	Components        *Components          `json:"components,omitempty"`
 }
 
-func New(version string, info *Info) *OpenAPI {
+func NewDoc(version string, info *Info) *OpenAPI {
 	return &OpenAPI{
 		Version: version,
 		Info:    info,

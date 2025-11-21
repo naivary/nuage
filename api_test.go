@@ -6,8 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/naivary/nuage/openapi"
 )
 
 type requestTypeTest struct {
@@ -19,14 +17,14 @@ type requestTypeTest struct {
 type responseTypeTest struct{}
 
 func TestAPIHandle(t *testing.T) {
-	api, err := NewAPI(openapi.New("1.0.0", nil), DefaultAPIConfig())
+	api, err := NewAPI(NewDoc("1.0.0", nil), DefaultAPIConfig())
 	if err != nil {
 		t.Fatalf("new api: %v", err)
 	}
 	hl := HandlerFuncErr[requestTypeTest, responseTypeTest](func(r *http.Request, input *requestTypeTest) (*responseTypeTest, error) {
 		return nil, nil
 	})
-	err = Handle(api, &openapi.Operation{
+	err = Handle(api, &Operation{
 		Pattern:     "POST /path/to/endpoint",
 		OperationID: "CreateUser",
 	}, hl)

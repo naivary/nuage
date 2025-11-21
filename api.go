@@ -8,11 +8,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
-
-	"github.com/naivary/nuage/openapi"
 )
-
-const ContentTypeJSON = "application/json"
 
 type APIConfig struct {
 	LoggerOpts *slog.HandlerOptions
@@ -37,14 +33,14 @@ func DefaultAPIConfig() *APIConfig {
 }
 
 type api struct {
-	doc        *openapi.OpenAPI
+	doc        *OpenAPI
 	mux        *http.ServeMux
 	logger     *slog.Logger
 	operations map[string]struct{}
 	formats    map[string]Formater
 }
 
-func NewAPI(doc *openapi.OpenAPI, cfg *APIConfig) (*api, error) {
+func NewAPI(doc *OpenAPI, cfg *APIConfig) (*api, error) {
 	if cfg == nil {
 		cfg = DefaultAPIConfig()
 	}
@@ -66,7 +62,8 @@ func NewAPI(doc *openapi.OpenAPI, cfg *APIConfig) (*api, error) {
 
 // TODO: check if request input struct has path parameters which are defined in
 // the path also in the pattern.
-func Handle[I, O any](api *api, op *openapi.Operation, handler HandlerFuncErr[I, O]) error {
+// TODO: automatically set contentype of patch and put to RFC standard type. And provide utilities to check if the handler is idempotent
+func Handle[I, O any](api *api, op *Operation, handler HandlerFuncErr[I, O]) error {
 	if !isStruct[I]() || !isStruct[O]() {
 		return errors.New("handle: both input and output data types have to be of kind struct")
 	}
@@ -88,7 +85,7 @@ func Handle[I, O any](api *api, op *openapi.Operation, handler HandlerFuncErr[I,
 	}
 	pathItem := api.doc.Paths[op.Pattern]
 	if pathItem == nil {
-		pathItem = &openapi.PathItem{}
+		pathItem = &PathItem{}
 	}
 	if err := pathItem.AddOperation(method, op); err != nil {
 		return err
@@ -99,7 +96,7 @@ func Handle[I, O any](api *api, op *openapi.Operation, handler HandlerFuncErr[I,
 	return nil
 }
 
-func isValidOperation(api *api, op *openapi.Operation) error {
+func isValidOperation(api *api, op *Operation) error {
 	if op.OperationID == "" {
 		return fmt.Errorf("operation validation: missing operation id")
 	}

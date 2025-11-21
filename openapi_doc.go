@@ -5,11 +5,9 @@ import (
 	"strconv"
 
 	"github.com/google/jsonschema-go/jsonschema"
-
-	"github.com/naivary/nuage/openapi"
 )
 
-func operationSpecFor[I, O any](op *openapi.Operation) error {
+func operationSpecFor[I, O any](op *Operation) error {
 	paramSpecs, err := paramSpecsFor[I]()
 	if err != nil {
 		return err
@@ -20,10 +18,10 @@ func operationSpecFor[I, O any](op *openapi.Operation) error {
 	if err != nil {
 		return err
 	}
-	op.RequestBody = &openapi.RequestBody{
+	op.RequestBody = &RequestBody{
 		Description: "Successfull Request!",
 		Required:    true,
-		Content: map[string]*openapi.MediaType{
+		Content: map[string]*MediaType{
 			ContentTypeJSON: {Schema: requestSchema},
 		},
 	}
@@ -45,12 +43,12 @@ func operationSpecFor[I, O any](op *openapi.Operation) error {
 		return err
 	}
 	if op.Responses == nil {
-		op.Responses = make(map[string]*openapi.Response)
+		op.Responses = make(map[string]*Response)
 	}
-	op.Responses[strconv.Itoa(responseStatusCode)] = &openapi.Response{
+	op.Responses[strconv.Itoa(responseStatusCode)] = &Response{
 		Description: responseDesc,
 		Headers:     responseHeaders,
-		Content: map[string]*openapi.MediaType{
+		Content: map[string]*MediaType{
 			ContentTypeJSON: {
 				Schema: responseSchema,
 			},
@@ -59,12 +57,12 @@ func operationSpecFor[I, O any](op *openapi.Operation) error {
 	return nil
 }
 
-func responseHeadersFor[O any]() (map[string]*openapi.Parameter, error) {
+func responseHeadersFor[O any]() (map[string]*Parameter, error) {
 	fields, err := fieldsOf[O]()
 	if err != nil {
 		return nil, err
 	}
-	headers := make(map[string]*openapi.Parameter, len(fields))
+	headers := make(map[string]*Parameter, len(fields))
 	for _, field := range fields {
 		opts, err := parseParamTagOpts(field)
 		if err != nil {
@@ -73,9 +71,9 @@ func responseHeadersFor[O any]() (map[string]*openapi.Parameter, error) {
 		if opts.tagKey != _tagKeyHeader {
 			continue
 		}
-		headers[opts.name] = &openapi.Parameter{
-			ParamIn:    openapi.ParamInHeader,
-			Style:      openapi.StyleSimple,
+		headers[opts.name] = &Parameter{
+			ParamIn:    ParamInHeader,
+			Style:      StyleSimple,
 			Explode:    opts.explode,
 			Deprecated: opts.deprecated,
 		}
