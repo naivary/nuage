@@ -85,7 +85,7 @@ func assign(lhs reflect.Value, rhs ...string) error {
 	case reflect.Slice:
 		elems := make([]reflect.Value, 0, len(rhs))
 		for _, rh := range rhs {
-			elem, isPtr := newVar(lhs.Type().Elem())
+			elem, isPtr := newValue(lhs.Type().Elem())
 			err := assign(elem, rh)
 			if err != nil {
 				return err
@@ -102,8 +102,8 @@ func assign(lhs reflect.Value, rhs ...string) error {
 		if len(rhs)%2 != 0 {
 			return fmt.Errorf("assign: lhs kind of map expects an even number of rhs values. Got: %d", len(rhs))
 		}
-		key, isKeyPtr := newVar(lhs.Type().Key())
-		value, isValuePtr := newVar(lhs.Type().Elem())
+		key, isKeyPtr := newValue(lhs.Type().Key())
+		value, isValuePtr := newValue(lhs.Type().Elem())
 		for i := 0; i < len(rhs); i += 2 {
 			err := assign(key, rhs[i])
 			if err != nil {
@@ -129,13 +129,13 @@ func assign(lhs reflect.Value, rhs ...string) error {
 	return fmt.Errorf("cannot assign: %s to %v", rhs, lhs)
 }
 
-// newVar allocates a new value of the given reflect.Type and returns it as a
-// reflect.Value. If the provided type is a pointer type, newVar returns a
+// newValue allocates a new value of the given reflect.Type and returns it as a
+// reflect.Value. If the provided type is a pointer type, newValue returns a
 // pointer to a newly allocated zero value of the element type and the second
 // return value is true. If the provided type is not a pointer, the returned
 // reflect.Value still contains a pointer (as reflect.New always returns a
 // pointer to the value), but the second return value is false.
-func newVar(typ reflect.Type) (reflect.Value, bool) {
+func newValue(typ reflect.Type) (reflect.Value, bool) {
 	isPtr := isPointer(typ)
 	if isPtr {
 		typ = typ.Elem()

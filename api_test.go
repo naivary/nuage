@@ -44,4 +44,7 @@ func TestAPIHandle(t *testing.T) {
 	r.Header.Add(_headerKeyContentType, ContentTypeJSON)
 	r.Header.Add("Limit", "3")
 	api.mux.ServeHTTP(w, r)
+
+	openAPIData, err := json.Marshal(api.doc)
+	t.Log(string(openAPIData), err)
 }

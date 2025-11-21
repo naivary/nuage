@@ -7,7 +7,10 @@ import (
 	"maps"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
+
+	"github.com/google/jsonschema-go/jsonschema"
 )
 
 type APIConfig struct {
@@ -25,9 +28,7 @@ func DefaultAPIConfig() *APIConfig {
 		LoggerOpts: &slog.HandlerOptions{
 			AddSource: true,
 		},
-		Formats: map[string]Formater{
-			ContentTypeJSON: &jsonFormater{},
-		},
+		Formats:            map[string]Formater{},
 		DefaultContentType: ContentTypeJSON,
 	}
 }
@@ -37,7 +38,9 @@ type api struct {
 	mux        *http.ServeMux
 	logger     *slog.Logger
 	operations map[string]struct{}
-	formats    map[string]Formater
+	schemaReg  map[reflect.Type]*jsonschema.Schema
+
+	cfg *APIConfig
 }
 
 func NewAPI(doc *OpenAPI, cfg *APIConfig) (*api, error) {
@@ -52,11 +55,13 @@ func NewAPI(doc *OpenAPI, cfg *APIConfig) (*api, error) {
 		mux:        http.NewServeMux(),
 		operations: make(map[string]struct{}, 1),
 		logger:     slog.New(slog.NewJSONHandler(os.Stdout, cfg.LoggerOpts)),
-		formats: map[string]Formater{
-			ContentTypeJSON: &jsonFormater{},
-		},
+		cfg:        cfg,
 	}
-	maps.Copy(a.formats, cfg.Formats)
+
+	// add defaul formaters
+	maps.Copy(cfg.Formats, map[string]Formater{
+		ContentTypeJSON: &jsonFormater{},
+	})
 	return a, nil
 }
 
@@ -71,17 +76,23 @@ func Handle[I, O any](api *api, op *Operation, handler HandlerFuncErr[I, O]) err
 	if !isValidPatternSyntax {
 		return fmt.Errorf("handle: invalid pattern syntax `%s`. Make sure to use the standard library syntax of [METHOD ][HOST]/[PATH]", op.Pattern)
 	}
+	if op.ContentType == "" {
+		op.ContentType = api.cfg.DefaultContentType
+	}
+	if method == http.MethodPatch && isPatchContentTypeRFCCompatible(op.ContentType) {
+		return fmt.Errorf("handle: patch operation is not conveying to RFC 7386 or 6902 as content type")
+	}
 	if err := isValidOperation(api, op); err != nil {
 		return err
 	}
-	if err := operationSpecFor[I, O](op); err != nil {
+	if err := operationSpecFor[I, O](op, api.schemaReg); err != nil {
 		return err
 	}
 	e := &endpoint[I, O]{
 		handler: handler,
 		doc:     op,
 		logger:  api.logger,
-		formats: api.formats,
+		formats: api.cfg.Formats,
 	}
 	pathItem := api.doc.Paths[op.Pattern]
 	if pathItem == nil {

@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func varFor[T any]() reflect.Value {
+func valueFor[T any]() reflect.Value {
 	return reflect.New(reflect.TypeFor[T]()).Elem()
 }
 
@@ -26,13 +26,13 @@ func TestAssign(t *testing.T) {
 	}{
 		{
 			name:    "string to string",
-			lhs:     varFor[string](),
+			lhs:     valueFor[string](),
 			rhs:     []string{"t1"},
 			isEqual: isEqualString,
 		},
 		{
 			name:    "*string to string",
-			lhs:     varFor[*string](),
+			lhs:     valueFor[*string](),
 			rhs:     []string{"t1"},
 			isEqual: isEqualString,
 		},

@@ -1,6 +1,10 @@
 package nuage
 
-import "github.com/google/jsonschema-go/jsonschema"
+import (
+	"net/http"
+
+	"github.com/google/jsonschema-go/jsonschema"
+)
 
 type Operation struct {
 	// Tags associated with this operation
@@ -15,12 +19,18 @@ type Operation struct {
 	RequestBody *RequestBody         `json:"requestBody,omitempty"`
 	Responses   map[string]*Response `json:"responses,omitempty"`
 
-	// nuage specific fields which are not compatible to the openapi spec
+	// nuage specific fields which are not included in the final openapi spec.
+
+	IsRequestBodyRequired bool `json:"-"`
 
 	// Pattern to register the handler endpoint
 	Pattern string `json:"-"`
+
 	// ContentType of this specific operation.
 	ContentType string `json:"-"`
+
+	// Middlewares to run before the handler
+	Middlewares []func(next http.Handler) http.Handler `json:"-"`
 }
 
 func (o *Operation) GetParamSchema(name string, in ParamIn) *jsonschema.Schema {

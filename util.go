@@ -28,3 +28,7 @@ func isContentTypeJSON(contentType string) bool {
 	}
 	return after == "json"
 }
+
+func isPatchContentTypeRFCCompatible(contentType string) bool {
+	return contentType == ContentTypeMergePatch || contentType == ContentTypeJSONPatch
+}

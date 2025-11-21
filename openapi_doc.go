@@ -2,12 +2,13 @@ package nuage
 
 import (
 	"net/http"
+	"reflect"
 	"strconv"
 
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
-func operationSpecFor[I, O any](op *Operation) error {
+func operationSpecFor[I, O any](op *Operation, schemaReg map[reflect.Type]*jsonschema.Schema) error {
 	paramSpecs, err := paramSpecsFor[I]()
 	if err != nil {
 		return err
@@ -18,13 +19,12 @@ func operationSpecFor[I, O any](op *Operation) error {
 	if err != nil {
 		return err
 	}
-	op.RequestBody = &RequestBody{
-		Description: "Successfull Request!",
-		Required:    true,
-		Content: map[string]*MediaType{
-			ContentTypeJSON: {Schema: requestSchema},
-		},
+	schemaReg[reflect.TypeFor[I]()] = requestSchema
+	_, customSchemaIsExisting := op.RequestBody.Content[op.ContentType]
+	if !customSchemaIsExisting {
+		op.RequestBody.Content[op.ContentType] = &MediaType{Schema: requestSchema}
 	}
+
 	responseSchema, err := jsonschema.For[O](nil)
 	if err != nil {
 		return err

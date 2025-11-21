@@ -10,7 +10,7 @@ import (
 )
 
 type decodeParamsRequestTypeTest struct {
-	P1 int `json:"-" path:"p1"`
+	P1 int `path:"p1" json:"-"`
 }
 
 func jsonSchemaFor[T any]() *jsonschema.Schema {

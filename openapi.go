@@ -14,10 +14,10 @@ type LicenseKeyword string
 // ENUM(APIKey, HTTP, MutualTLS, OAuth2, OpenIDConnect)
 type SecurityType string
 
-// ENUM(Matrix, Label, Simple, Form, SpaceDelim, PipeDelim, DeepObject, Cookie)
+// ENUM(matrix, label, simple, form, spaceDelim, pipeDelim, deepObject, cookie)
 type Style string
 
-// ENUM(Path, Query, Header, Cookie)
+// ENUM(path, query, header, cookie)
 type ParamIn string
 
 type SecurityRequirement map[string][]string

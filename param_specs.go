@@ -24,9 +24,6 @@ import (
 //	}
 //
 //	params, err := paramSpecsFor[GetUserInput]()
-//	if err != nil {
-//	    log.Fatal(err)
-//	}
 func paramSpecsFor[I any]() ([]*Parameter, error) {
 	fields, err := fieldsOf[I]()
 	params := make([]*Parameter, 0, len(fields))
