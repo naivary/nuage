@@ -29,8 +29,11 @@ func TestHandle(t *testing.T) {
 		return nil, nil
 	})
 	err = Handle(api, &Operation{
-		Pattern:     "GET /path/to/handler",
-		OperationID: "test-operation-id",
+		Description:        "something",
+		Pattern:            "GET /path/to/handler",
+		OperationID:        "test-operation-id",
+		ResponseStatusCode: http.StatusOK,
+		ResponseDesc:       "something",
 	}, handler)
 	if err != nil {
 		t.Errorf("handle: %v", err)

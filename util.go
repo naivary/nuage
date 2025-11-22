@@ -23,3 +23,17 @@ func isJSONishContentType(contentType string) bool {
 	}
 	return after == "json"
 }
+
+func isEmptyJSON[T any]() bool {
+	fields, err := fieldsOf[T]()
+	if err != nil {
+		return false
+	}
+	for _, field := range fields {
+		tagValue, ok := field.Tag.Lookup("json")
+		if tagValue != "-" && tagValue != "" && ok {
+			return false
+		}
+	}
+	return true
+}

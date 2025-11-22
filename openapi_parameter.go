@@ -79,6 +79,9 @@ func paramSpecsFor[I any]() ([]*Parameter, error) {
 			return nil, newParamErr
 		}
 		param.Schema = schema
+		if opts.example == "" {
+			param.Example = nil
+		}
 		params = append(params, param)
 	}
 	return params, nil

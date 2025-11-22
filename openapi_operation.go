@@ -3,6 +3,7 @@ package nuage
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/google/jsonschema-go/jsonschema"
 )
@@ -54,11 +55,6 @@ func (o *Operation) IsValid() error {
 	if o.ResponseDesc == "" {
 		return errors.New("operation validation: missing response description")
 	}
-	if !isStatusCodeInRange(o.ResponseStatusCode) {
-		return errors.New(
-			"operation validation: response status code has to be between 100 and 599. For further information about HTTP status codes see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status",
-		)
-	}
 
 	return nil
 }
@@ -76,6 +72,15 @@ func operationSpecFor[I, O any](op *Operation) error {
 		return err
 	}
 	op.RequestBody = requestBody
+
+	response, err := responseBodyFor[I](op)
+	if err != nil {
+		return err
+	}
+	if op.Responses == nil {
+		op.Responses = make(map[string]*Response, 1)
+	}
+	op.Responses[strconv.Itoa(op.ResponseStatusCode)] = response
 	return nil
 }
 
@@ -95,6 +100,9 @@ func requestBodyFor[I any](op *Operation) (*RequestBody, error) {
 	if !isJSONishContentType(op.RequestContentType) {
 		return reqBody, nil
 	}
+	if isEmptyJSON[I]() {
+		return reqBody, nil
+	}
 	schema, err := jsonschema.For[I](nil)
 	if err != nil {
 		return nil, err
@@ -105,9 +113,6 @@ func requestBodyFor[I any](op *Operation) (*RequestBody, error) {
 
 // TODO: check if the output struct has any memebers which are included in a json payload. If its empty, we dont want any schema.
 func responseBodyFor[O any](op *Operation) (*Response, error) {
-	if op.Responses == nil {
-		op.Responses = make(map[string]*Response, 1)
-	}
 	headers, err := responseHeadersFor[O]()
 	if err != nil {
 		return nil, err
@@ -115,6 +120,9 @@ func responseBodyFor[O any](op *Operation) (*Response, error) {
 	res := &Response{
 		Description: op.ResponseDesc,
 		Headers:     headers,
+	}
+	if isEmptyJSON[O]() {
+		return res, nil
 	}
 	return res, nil
 }
@@ -133,11 +141,15 @@ func responseHeadersFor[O any]() (map[string]*Parameter, error) {
 		if opts.tagKey != _tagKeyHeader {
 			continue
 		}
+		schema, err := jsonschema.ForType(field.Type, &jsonschema.ForOptions{})
+		if err != nil {
+			return nil, err
+		}
 		headers[opts.name] = &Parameter{
-			ParamIn:    ParamInHeader,
 			Style:      StyleSimple,
 			Explode:    opts.explode,
 			Deprecated: opts.deprecated,
+			Schema:     schema,
 		}
 	}
 	return headers, nil
