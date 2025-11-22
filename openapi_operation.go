@@ -45,8 +45,12 @@ func (o *Operation) IsValid() error {
 	if o.Pattern == "" {
 		return errors.New("operation validation: pattern undefined")
 	}
-	if o.RequestContentType != ContentTypeJSONPatch && o.RequestContentType != ContentTypeMergePatch && methodOf(o.Pattern) == http.MethodPatch{
-		return fmt.Errorf("operation validation: PATCH operations cannot have another Content-Type than %s or %s", ContentTypeMergePatch, ContentTypeJSONPatch)
+	if o.RequestContentType != ContentTypeJSONPatch && o.RequestContentType != ContentTypeMergePatch && methodOf(o.Pattern) == http.MethodPatch {
+		return fmt.Errorf(
+			"operation validation: PATCH operations cannot have another Content-Type than %s or %s",
+			ContentTypeMergePatch,
+			ContentTypeJSONPatch,
+		)
 	}
 
 	if o.RequestBody != nil && methodOf(o.Pattern) == http.MethodGet {
@@ -77,7 +81,7 @@ func operationSpecFor[I, O any](op *Operation) error {
 	}
 	op.RequestBody = requestBody
 
-	response, err := responseBodyFor[O](op)
+	response, err := responseFor[O](op)
 	if err != nil {
 		return err
 	}
@@ -114,8 +118,8 @@ func requestBodyFor[I any](op *Operation) (*RequestBody, error) {
 	return reqBody, nil
 }
 
-func responseBodyFor[O any](op *Operation) (*Response, error) {
-	headers, err := responseHeadersFor[O]()
+func responseFor[O any](op *Operation) (*Response, error) {
+	headers, err := headersFor[O]()
 	if err != nil {
 		return nil, err
 	}
@@ -143,7 +147,7 @@ func responseBodyFor[O any](op *Operation) (*Response, error) {
 	return res, nil
 }
 
-func responseHeadersFor[O any]() (map[string]*Parameter, error) {
+func headersFor[O any]() (map[string]*Parameter, error) {
 	fields, err := fieldsOf[O]()
 	if err != nil {
 		return nil, err
