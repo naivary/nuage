@@ -73,7 +73,7 @@ func operationSpecFor[I, O any](op *Operation) error {
 	}
 	op.RequestBody = requestBody
 
-	response, err := responseBodyFor[I](op)
+	response, err := responseBodyFor[O](op)
 	if err != nil {
 		return err
 	}
@@ -84,7 +84,6 @@ func operationSpecFor[I, O any](op *Operation) error {
 	return nil
 }
 
-// TODO: check if the input struct has any memebers which are included in a json payload. If its empty, we dont want any schema.
 func requestBodyFor[I any](op *Operation) (*RequestBody, error) {
 	method := methodOf(op.Pattern)
 	if method == http.MethodGet {
@@ -111,7 +110,6 @@ func requestBodyFor[I any](op *Operation) (*RequestBody, error) {
 	return reqBody, nil
 }
 
-// TODO: check if the output struct has any memebers which are included in a json payload. If its empty, we dont want any schema.
 func responseBodyFor[O any](op *Operation) (*Response, error) {
 	headers, err := responseHeadersFor[O]()
 	if err != nil {
@@ -121,8 +119,22 @@ func responseBodyFor[O any](op *Operation) (*Response, error) {
 		Description: op.ResponseDesc,
 		Headers:     headers,
 	}
-	if isEmptyJSON[O]() {
+	if isEmptyJSON[O]() || !isJSONishContentType(op.ResponseContentType) {
 		return res, nil
+	}
+	if res.Content == nil {
+		res.Content = make(map[string]*MediaType, 1)
+	}
+	_, isUserDefined := res.Content[op.ResponseContentType]
+	if isUserDefined {
+		return res, nil
+	}
+	schema, err := jsonschema.For[O](nil)
+	if err != nil {
+		return nil, err
+	}
+	res.Content[op.ResponseContentType] = &MediaType{
+		Schema: schema,
 	}
 	return res, nil
 }
@@ -135,6 +147,9 @@ func responseHeadersFor[O any]() (map[string]*Parameter, error) {
 	headers := make(map[string]*Parameter, len(fields))
 	for _, field := range fields {
 		opts, err := parseParamTagOpts(field)
+		if errors.Is(err, errTagNotFound) {
+			continue
+		}
 		if err != nil {
 			return nil, err
 		}

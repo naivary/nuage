@@ -16,6 +16,10 @@ type testRequest struct {
 	C1 string `cookie:"c1" json:"-"`
 }
 
+type testResponse struct {
+	PlayerName string `json:"playerName"`
+}
+
 func TestHandle(t *testing.T) {
 	doc := NewOpenAPI(&Info{
 		Version: "1.0",
@@ -25,15 +29,16 @@ func TestHandle(t *testing.T) {
 	if err != nil {
 		t.Errorf("new api: %v", err)
 	}
-	handler := HandlerFuncErr[testRequest, struct{}](func(r *http.Request, input *testRequest) (*struct{}, error) {
+	handler := HandlerFuncErr[testRequest, testResponse](func(r *http.Request, input *testRequest) (*testResponse, error) {
 		return nil, nil
 	})
 	err = Handle(api, &Operation{
-		Description:        "something",
-		Pattern:            "GET /path/to/handler",
-		OperationID:        "test-operation-id",
-		ResponseStatusCode: http.StatusOK,
-		ResponseDesc:       "something",
+		Description:         "something",
+		Pattern:             "GET /path/to/handler",
+		OperationID:         "test-operation-id",
+		ResponseStatusCode:  http.StatusOK,
+		ResponseDesc:        "something",
+		ResponseContentType: ContentTypeJSON,
 	}, handler)
 	if err != nil {
 		t.Errorf("handle: %v", err)

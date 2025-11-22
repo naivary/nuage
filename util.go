@@ -1,6 +1,7 @@
 package nuage
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -30,6 +31,7 @@ func isEmptyJSON[T any]() bool {
 		return false
 	}
 	for _, field := range fields {
+		fmt.Println(field)
 		tagValue, ok := field.Tag.Lookup("json")
 		if tagValue != "-" && tagValue != "" && ok {
 			return false
