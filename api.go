@@ -7,7 +7,11 @@ import (
 	"strings"
 )
 
-const ContentTypeJSON = "application/json"
+const (
+	ContentTypeJSON       = "application/json"
+	ContentTypeMergePatch = "application/merge-patch+json"
+	ContentTypeJSONPatch  = "application/json-patch+json"
+)
 
 type APIConfig struct {
 	DefaultContentType string
@@ -32,7 +36,10 @@ func NewAPI(doc *OpenAPI, cfg *APIConfig) (*api, error) {
 		cfg = DefaultAPIConfig()
 	}
 	if doc == nil || doc.Info == nil {
-		return nil, errors.New(`new api: the root OpenAPI documentation passed to NewAPI cannot be nil. It has to provide at least the info field`)
+		return nil, errors.New(`api: the root OpenAPI documentation passed to NewAPI cannot be nil. It has to provide at least the info field`)
+	}
+	if doc.Info.Title == "" || doc.Info.Version == "" {
+		return nil, errors.New("api: OpenAPI.Info.Title and OpenAPI.Info.Version are both required")
 	}
 	a := &api{
 		doc:        doc,
@@ -45,7 +52,7 @@ func NewAPI(doc *OpenAPI, cfg *APIConfig) (*api, error) {
 
 // TODO: check if request input struct has path parameters which are defined in
 // the path also in the pattern.
-func Handle[I, O any](api *api, op *Operation, handler HandlerFuncErr[I, O]) error {
+func Handle[I, O any](api *api, op *Operation, fn HandlerFuncErr[I, O]) error {
 	if !isStruct[I]() || !isStruct[O]() {
 		return errors.New("handle: both input and output data types have to be of kind struct")
 	}
@@ -56,7 +63,7 @@ func Handle[I, O any](api *api, op *Operation, handler HandlerFuncErr[I, O]) err
 	if !isStdSyntax {
 		return fmt.Errorf("handle: invalid pattern syntax `%s`. Make sure to use the standard library syntax of [METHOD ][HOST]/[PATH]", op.Pattern)
 	}
-	if _, ok := api.operations[op.OperationID]; ok {
+	if _, isIDUnique := api.operations[op.OperationID]; isIDUnique {
 		return fmt.Errorf("handle: operation id repeated `%s`", op.OperationID)
 	}
 	if err := operationSpecFor[I, O](op); err != nil {
@@ -71,5 +78,9 @@ func Handle[I, O any](api *api, op *Operation, handler HandlerFuncErr[I, O]) err
 	}
 	api.operations[op.OperationID] = struct{}{}
 	api.doc.Paths[uri] = pathItem
+	handler := handler[I, O]{
+		fn: fn,
+	}
+	api.mux.Handle(op.Pattern, &handler)
 	return nil
 }

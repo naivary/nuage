@@ -2,6 +2,7 @@ package nuage
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -44,6 +45,10 @@ func (o *Operation) IsValid() error {
 	if o.Pattern == "" {
 		return errors.New("operation validation: pattern undefined")
 	}
+	if o.RequestContentType != ContentTypeJSONPatch && o.RequestContentType != ContentTypeMergePatch && methodOf(o.Pattern) == http.MethodPatch{
+		return fmt.Errorf("operation validation: PATCH operations cannot have another Content-Type than %s or %s", ContentTypeMergePatch, ContentTypeJSONPatch)
+	}
+
 	if o.RequestBody != nil && methodOf(o.Pattern) == http.MethodGet {
 		return errors.New("operation validation: GET operations cannot have a request body")
 	}
@@ -59,7 +64,6 @@ func (o *Operation) IsValid() error {
 	return nil
 }
 
-// TODO: get operations are not allowed to have request body
 func operationSpecFor[I, O any](op *Operation) error {
 	paramSpecs, err := paramSpecsFor[I]()
 	if err != nil {
