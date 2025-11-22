@@ -181,3 +181,8 @@ func fieldsOf[S any]() ([]reflect.StructField, error) {
 	}
 	return fields, nil
 }
+
+func isIgnoredFromJSONMarshal(field reflect.StructField) bool {
+	jsonTagValue := field.Tag.Get("json")
+	return jsonTagValue == "-"
+}

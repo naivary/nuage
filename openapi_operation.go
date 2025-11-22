@@ -3,6 +3,8 @@ package nuage
 import (
 	"errors"
 	"net/http"
+
+	"github.com/google/jsonschema-go/jsonschema"
 )
 
 type Operation struct {
@@ -68,7 +70,53 @@ func operationSpecFor[I, O any](op *Operation) error {
 		return err
 	}
 	op.Parameters = paramSpecs
+
+	requestBody, err := requestBodyFor[I](op)
+	if err != nil {
+		return err
+	}
+	op.RequestBody = requestBody
 	return nil
+}
+
+// TODO: check if the input struct has any memebers which are included in a json payload. If its empty, we dont want any schema.
+func requestBodyFor[I any](op *Operation) (*RequestBody, error) {
+	method := methodOf(op.Pattern)
+	if method == http.MethodGet {
+		return nil, nil
+	}
+	if op.RequestBody != nil {
+		return op.RequestBody, nil
+	}
+	reqBody := &RequestBody{
+		Description: op.RequestDesc,
+		Required:    op.IsRequestBodyRequired,
+	}
+	if !isJSONishContentType(op.RequestContentType) {
+		return reqBody, nil
+	}
+	schema, err := jsonschema.For[I](nil)
+	if err != nil {
+		return nil, err
+	}
+	reqBody.Content[op.RequestContentType] = &MediaType{Schema: schema}
+	return reqBody, nil
+}
+
+// TODO: check if the output struct has any memebers which are included in a json payload. If its empty, we dont want any schema.
+func responseBodyFor[O any](op *Operation) (*Response, error) {
+	if op.Responses == nil {
+		op.Responses = make(map[string]*Response, 1)
+	}
+	headers, err := responseHeadersFor[O]()
+	if err != nil {
+		return nil, err
+	}
+	res := &Response{
+		Description: op.ResponseDesc,
+		Headers:     headers,
+	}
+	return res, nil
 }
 
 func responseHeadersFor[O any]() (map[string]*Parameter, error) {

@@ -52,8 +52,10 @@ func parseParamTagOpts(field reflect.StructField) (*paramTagOpts, error) {
 		return nil, errTagNotFound
 	}
 	opts.tagKey = paramTagKey
-	if err := isExcludedFromJSON(field); err != nil {
-		return nil, err
+	if !isIgnoredFromJSONMarshal(field) {
+		return nil, fmt.Errorf(
+			`parse paramn tag opts: make sure that if you are tagging a struct field to be decoded from parameters it is ignored from json payloads e.g. json:"-"`,
+		)
 	}
 
 	values := strings.Split(paramTagValue, ",")
@@ -90,19 +92,6 @@ func parseParamTagOpts(field reflect.StructField) (*paramTagOpts, error) {
 	}
 	opts.queryKeys = strings.Split(queryKeys, ",")
 	return &opts, nil
-}
-
-func isExcludedFromJSON(field reflect.StructField) error {
-	jsonTagValue, ok := field.Tag.Lookup("json")
-	if !ok {
-		return fmt.Errorf(
-			`parse paramn tag opts: make sure that if you are tagging a struct field to be decoded from parameters it is also excluded from json payloads e.g. json:"-"`,
-		)
-	}
-	if jsonTagValue != "-" {
-		return fmt.Errorf("parse param tag opts: only tag option for json is '-' for a parameter tagged struct field")
-	}
-	return nil
 }
 
 func paramTagKeyOf(field reflect.StructField) (string, string) {
