@@ -47,7 +47,7 @@ func paramSpecsFor[I any]() ([]*Parameter, error) {
 	}
 	// TODO: is the schema correct for the cookie type?
 	for _, field := range fields {
-		if !field.IsExported() || field.Anonymous {
+		if field.Anonymous {
 			continue
 		}
 		schema, err := jsonschema.ForType(field.Type, &jsonschema.ForOptions{})

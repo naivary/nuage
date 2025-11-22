@@ -170,16 +170,13 @@ func canCallIsNil(kind reflect.Kind) bool {
 	}
 }
 
+// fieldsOf returns all visible fields of S if S is a struct.
 func fieldsOf[S any]() ([]reflect.StructField, error) {
 	if !isStruct[S]() {
 		return nil, errors.New("fields of: is not struct")
 	}
 	rtype := reflect.TypeFor[S]()
-	fields := make([]reflect.StructField, 0, rtype.NumField())
-	for i := range rtype.NumField() {
-		fields = append(fields, rtype.Field(i))
-	}
-	return fields, nil
+	return reflect.VisibleFields(rtype), nil
 }
 
 func isIgnoredFromJSONMarshal(field reflect.StructField) bool {

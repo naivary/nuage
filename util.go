@@ -3,6 +3,8 @@ package nuage
 import (
 	"fmt"
 	"strings"
+
+	"github.com/google/jsonschema-go/jsonschema"
 )
 
 func methodOf(pattern string) string {
@@ -38,4 +40,11 @@ func isEmptyJSON[T any]() bool {
 		}
 	}
 	return true
+}
+
+func jsonSchemaFor[T any](opts *jsonschema.ForOptions) (*jsonschema.Schema, error) {
+	if opts == nil {
+		opts = &jsonschema.ForOptions{}
+	}
+	return nil, nil
 }
