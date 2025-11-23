@@ -50,6 +50,10 @@ func NewAPI(doc *OpenAPI, cfg *APIConfig) (*api, error) {
 	return a, nil
 }
 
+func (a *api) Doc() *OpenAPI {
+	return a.doc
+}
+
 // TODO: check if request input struct has path parameters which are defined in
 // the path also in the pattern.
 func Handle[I, O any](api *api, op *Operation, fn HandlerFuncErr[I, O]) error {

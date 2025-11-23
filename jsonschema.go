@@ -1,28 +1,25 @@
 package nuage
 
 import (
-	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
-func jsonSchemaFor[T any](opts *jsonschema.ForOptions) (*jsonschema.Schema, error) {
-	if !isStruct[T]() {
-		return nil, errors.New("jsonschema: input is not a struct")
+func jsonSchemaForType(typ reflect.Type, opts *jsonschema.ForOptions) (*jsonschema.Schema, error) {
+	if typ.Kind() != reflect.Struct {
+		return nil, fmt.Errorf("josnschema: type is not struct %s", typ)
 	}
 	if opts == nil {
 		opts = &jsonschema.ForOptions{}
 	}
-	schema, err := jsonschema.For[T](opts)
+	schema, err := jsonschema.ForType(typ, opts)
 	if err != nil {
 		return nil, err
 	}
-	fields, err := fieldsOf[T]()
-	if err != nil {
-		return nil, err
-	}
+	fields := reflect.VisibleFields(typ)
 	for _, field := range fields {
 		jsonName := jsonNameOf(field)
 		propertySchema := schema.Properties[jsonName]
@@ -44,6 +41,11 @@ func jsonSchemaFor[T any](opts *jsonschema.ForOptions) (*jsonschema.Schema, erro
 		schema.Properties[jsonName] = propertySchema
 	}
 	return schema, nil
+}
+
+func jsonSchemaFor[T any](opts *jsonschema.ForOptions) (*jsonschema.Schema, error) {
+	typ := reflect.TypeFor[T]()
+	return jsonSchemaForType(typ, opts)
 }
 
 func jsonNameOf(field reflect.StructField) string {

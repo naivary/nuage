@@ -22,14 +22,17 @@ type jsonSchemaTagOpts struct {
 	// validation
 	enum []any
 
+	// number, integer
 	multipleOf       *float64
 	minimum          *float64
 	maximum          *float64
 	exclusiveMinimum *float64
 	exclusiveMaximum *float64
-	minLength        *int
-	maxLength        *int
-	pattern          string
+
+	// string
+	minLength *int
+	maxLength *int
+	pattern   string
 
 	// arrays
 	minItems    *int
@@ -207,6 +210,8 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 	return &opts, nil
 }
 
+// TODO: enum cannot be set for object. Only the object key or value
+// same goes for arrays. Only for items
 func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema, isRoot bool) error {
 	// type agnostic options
 	schema.Default = opts.dflt
