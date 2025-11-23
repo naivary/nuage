@@ -10,7 +10,6 @@ import (
 )
 
 type Operation struct {
-	// Tags associated with this operation
 	Tags        []string              `json:"tags,omitempty"`
 	Summary     string                `json:"summary,omitempty"`
 	Description string                `json:"description,omitempty"`
@@ -22,8 +21,7 @@ type Operation struct {
 	RequestBody *RequestBody         `json:"requestBody,omitempty"`
 	Responses   map[string]*Response `json:"responses,omitempty"`
 
-	// nuage specific members
-
+	// nuage specific 
 	Pattern string `json:"-"`
 
 	ResponseContentType string `json:"-"`
@@ -110,7 +108,7 @@ func requestBodyFor[I any](op *Operation) (*RequestBody, error) {
 	if isEmptyJSON[I]() {
 		return reqBody, nil
 	}
-	schema, err := jsonschema.For[I](nil)
+	schema, err := jsonSchemaFor[I](nil)
 	if err != nil {
 		return nil, err
 	}
@@ -137,7 +135,7 @@ func responseFor[O any](op *Operation) (*Response, error) {
 	if isUserDefined {
 		return res, nil
 	}
-	schema, err := jsonschema.For[O](nil)
+	schema, err := jsonSchemaFor[O](nil)
 	if err != nil {
 		return nil, err
 	}

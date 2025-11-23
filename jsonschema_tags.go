@@ -198,50 +198,60 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 }
 
 func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema) error {
+	// type agnostic options
 	schema.Default = opts.dflt
 	schema.Deprecated = opts.deprecated
 	schema.ReadOnly = opts.readOnly
 	schema.WriteOnly = opts.writeOnly
 	schema.Enum = opts.enum
-	schema.MultipleOf = opts.multipleOf
-	schema.ExclusiveMinimum = opts.exclusiveMinimum
-	schema.ExclusiveMaximum = opts.exclusiveMaximum
-	schema.MinLength = opts.minLength
-	schema.MaxLength = opts.maxLength
-	schema.Pattern = opts.pattern
-	schema.UniqueItems = opts.uniqueItems
-	schema.MinContains = opts.minContains
-	schema.MaxContains = opts.maxContains
-	schema.MinProperties = opts.minProperties
-	schema.MaxProperties = opts.maxProperties
 
-	if opts.minimum != nil {
-		switch schema.Minimum {
-		case nil:
-			schema.Minimum = opts.minimum
-		default:
-			if *opts.minimum > *schema.Minimum {
+	switch schema.Type {
+	case "boolean":
+		// only the type agnostic options are available
+	case "integer", "number":
+		schema.MultipleOf = opts.multipleOf
+		schema.ExclusiveMinimum = opts.exclusiveMinimum
+		schema.ExclusiveMaximum = opts.exclusiveMaximum
+		if opts.minimum != nil {
+			switch schema.Minimum {
+			case nil:
 				schema.Minimum = opts.minimum
+			default:
+				if *opts.minimum > *schema.Minimum {
+					schema.Minimum = opts.minimum
+				}
+				return fmt.Errorf("jsonschema: invalid minimum value %f", *opts.minimum)
 			}
-			return fmt.Errorf("jsonschema: invalid minimum value %f", *opts.minimum)
 		}
-	}
-	if opts.maximum != nil {
-		switch schema.Maximum {
-		case nil:
-			schema.Maximum = opts.maximum
-		default:
-			if *opts.maximum <= *schema.Maximum {
+		if opts.maximum != nil {
+			switch schema.Maximum {
+			case nil:
 				schema.Maximum = opts.maximum
+			default:
+				if *opts.maximum <= *schema.Maximum {
+					schema.Maximum = opts.maximum
+				}
+				return fmt.Errorf("jsonschema: invalid maximum value %f", *opts.maximum)
 			}
-			return fmt.Errorf("jsonschema: invalid maximum value %f", *opts.maximum)
 		}
-	}
-	if schema.MinItems == nil {
-		schema.MinItems = opts.minItems
-	}
-	if schema.MaxItems == nil {
-		schema.MaxItems = opts.maxItems
+	case "string":
+		schema.MinLength = opts.minLength
+		schema.MaxLength = opts.maxLength
+		schema.Pattern = opts.pattern
+	case "array":
+		schema.UniqueItems = opts.uniqueItems
+		schema.MinContains = opts.minContains
+		schema.MaxContains = opts.maxContains
+		if schema.MinItems == nil {
+			schema.MinItems = opts.minItems
+		}
+		if schema.MaxItems == nil {
+			schema.MaxItems = opts.maxItems
+		}
+		return opts.applyToSchema(schema.Items)
+	case "object":
+		schema.MinProperties = opts.minProperties
+		schema.MaxProperties = opts.maxProperties
 	}
 	return nil
 }

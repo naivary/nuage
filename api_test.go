@@ -17,7 +17,8 @@ type testRequest struct {
 }
 
 type testResponse struct {
-	PlayerName string `json:"playerName"`
+	PlayerName string `json:"playerName" minLength:"10"`
+	Scores     []int  `json:"scores"                    maximum:"20"`
 }
 
 func TestHandle(t *testing.T) {
