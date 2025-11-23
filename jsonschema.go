@@ -8,7 +8,6 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
-// TODO: object level memebers like dependentRequired cannot be scaled up rn to the object level schema using this approach
 func jsonSchemaFor[T any](opts *jsonschema.ForOptions) (*jsonschema.Schema, error) {
 	if !isStruct[T]() {
 		return nil, errors.New("jsonschema: input is not a struct")
@@ -35,7 +34,7 @@ func jsonSchemaFor[T any](opts *jsonschema.ForOptions) (*jsonschema.Schema, erro
 		if err != nil {
 			return nil, err
 		}
-		// ignore these fields for the root schema
+		// ignore min and max properties for the root schema because it's a struct with pre-defined properties
 		jsonOpts.minProperties = nil
 		jsonOpts.maxProperties = nil
 		err = jsonOpts.applyToSchema(schema, true)
