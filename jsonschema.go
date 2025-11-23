@@ -35,6 +35,9 @@ func jsonSchemaFor[T any](opts *jsonschema.ForOptions) (*jsonschema.Schema, erro
 		if err != nil {
 			return nil, err
 		}
+		// ignore these fields for the root schema
+		jsonOpts.minProperties = nil
+		jsonOpts.maxProperties = nil
 		err = jsonOpts.applyToSchema(schema, true)
 		if err != nil {
 			return nil, err

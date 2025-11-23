@@ -260,10 +260,8 @@ func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema, isRoot b
 		}
 		return opts.applyToSchema(schema.Items, false)
 	case "object":
-		if !isRoot {
-			schema.MinProperties = opts.minProperties
-			schema.MaxProperties = opts.maxProperties
-		}
+		schema.MinProperties = opts.minProperties
+		schema.MaxProperties = opts.maxProperties
 		if len(opts.dependentRequired) > 0 && isRoot {
 			for jsonName, requiredMembers := range opts.dependentRequired {
 				if slices.Contains(schema.Required, jsonName) {
