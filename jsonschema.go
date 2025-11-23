@@ -8,6 +8,7 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
+// TODO: object level memebers like dependentRequired cannot be scaled up rn to the object level schema using this approach
 func jsonSchemaFor[T any](opts *jsonschema.ForOptions) (*jsonschema.Schema, error) {
 	if !isStruct[T]() {
 		return nil, errors.New("jsonschema: input is not a struct")

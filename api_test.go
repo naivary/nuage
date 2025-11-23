@@ -17,8 +17,9 @@ type testRequest struct {
 }
 
 type testResponse struct {
-	PlayerName string `json:"playerName" minLength:"10"`
-	Scores     []int  `json:"scores"                    maximum:"20"`
+	Scores       []int             `json:"scores"              maximum:"20" default:"musti"`
+	PlayerName   string            `json:"playerName,omitzero"              minLength:"10" dependentRequired:"scores" deprecated:"true"`
+	JerseyOwners map[string]string `json:"jerseyOwner"                                                                                minProperties:"1" maxProperties:"10"`
 }
 
 func TestHandle(t *testing.T) {

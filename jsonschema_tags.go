@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -38,15 +39,16 @@ type jsonSchemaTagOpts struct {
 	maxContains *int
 
 	// objects
-	minProperties *int
-	maxProperties *int
+	minProperties     *int
+	maxProperties     *int
+	dependentRequired map[string][]string
 }
 
 func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, error) {
 	opts := jsonSchemaTagOpts{}
 	dflt, found := field.Tag.Lookup("default")
 	if found {
-		opts.dflt = json.RawMessage(dflt)
+		opts.dflt = json.RawMessage(fmt.Sprintf(`"%s"`, dflt))
 	}
 	deprecated, found := field.Tag.Lookup("deprecated")
 	if found {
@@ -194,6 +196,14 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 		}
 		opts.maxProperties = &i
 	}
+	dependentRequired, found := field.Tag.Lookup("dependentRequired")
+	if found {
+		jsonName := jsonNameOf(field)
+		if opts.dependentRequired == nil {
+			opts.dependentRequired = make(map[string][]string)
+		}
+		opts.dependentRequired[jsonName] = strings.Split(dependentRequired, ",")
+	}
 	return &opts, nil
 }
 
@@ -252,6 +262,17 @@ func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema) error {
 	case "object":
 		schema.MinProperties = opts.minProperties
 		schema.MaxProperties = opts.maxProperties
+		if len(opts.dependentRequired) > 0 {
+			for jsonName, requiredMembers := range opts.dependentRequired {
+				if slices.Contains(schema.Required, jsonName) {
+					return fmt.Errorf("jsonschema: dependentRequired cannot be used with a required field %s", jsonName)
+				}
+				if schema.DependentRequired == nil {
+					schema.DependentRequired = make(map[string][]string)
+				}
+				schema.DependentRequired[jsonName] = requiredMembers
+			}
+		}
 	}
 	return nil
 }
