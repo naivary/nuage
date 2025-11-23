@@ -31,7 +31,11 @@ func jsonSchemaFor[T any](opts *jsonschema.ForOptions) (*jsonschema.Schema, erro
 		if err != nil {
 			return nil, err
 		}
-		err = jsonOpts.applyToSchema(propertySchema)
+		err = jsonOpts.applyToSchema(propertySchema, false)
+		if err != nil {
+			return nil, err
+		}
+		err = jsonOpts.applyToSchema(schema, true)
 		if err != nil {
 			return nil, err
 		}

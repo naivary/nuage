@@ -207,7 +207,7 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 	return &opts, nil
 }
 
-func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema) error {
+func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema, isRoot bool) error {
 	// type agnostic options
 	schema.Default = opts.dflt
 	schema.Deprecated = opts.deprecated
@@ -258,11 +258,13 @@ func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema) error {
 		if schema.MaxItems == nil {
 			schema.MaxItems = opts.maxItems
 		}
-		return opts.applyToSchema(schema.Items)
+		return opts.applyToSchema(schema.Items, false)
 	case "object":
-		schema.MinProperties = opts.minProperties
-		schema.MaxProperties = opts.maxProperties
-		if len(opts.dependentRequired) > 0 {
+		if !isRoot {
+			schema.MinProperties = opts.minProperties
+			schema.MaxProperties = opts.maxProperties
+		}
+		if len(opts.dependentRequired) > 0 && isRoot {
 			for jsonName, requiredMembers := range opts.dependentRequired {
 				if slices.Contains(schema.Required, jsonName) {
 					return fmt.Errorf("jsonschema: dependentRequired cannot be used with a required field %s", jsonName)
