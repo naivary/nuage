@@ -10,6 +10,7 @@ import (
 
 type openAPIDocQueryRequest struct {
 	JSONPath string `query:"jsonpath"`
+	URI      string `query:"uri"`
 }
 
 type openAPIDocQueryResponse struct {
@@ -22,6 +23,7 @@ func queryOpenAPIDoc(doc *OpenAPI) HandlerFuncErr[openAPIDocQueryRequest, *openA
 		openAPIJSON    any
 		openAPIJSONErr error
 	)
+	// TODO: if uri is not empty get the path item of that uri
 	return HandlerFuncErr[openAPIDocQueryRequest, *openAPIDocQueryResponse](
 		func(r *http.Request, input openAPIDocQueryRequest) (*openAPIDocQueryResponse, error) {
 			init.Do(func() {
