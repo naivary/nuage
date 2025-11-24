@@ -124,7 +124,7 @@ func TestJSONSchemaFor(t *testing.T) {
 				p.MaxProperties = jsonschema.Ptr(3)
 				p.AdditionalProperties.Enum = []any{1, 2, 3}
 
-				p.DependentRequired = map[string][]string{
+				base.DependentRequired = map[string][]string{
 					"a": {"b", "c"},
 				}
 				return base
@@ -141,22 +141,17 @@ func TestJSONSchemaFor(t *testing.T) {
 			}
 			want := tc.want(typ, &jsonschema.ForOptions{})
 
-			gotData, _ := got.MarshalJSON()
-			wantData, _ := want.MarshalJSON()
-			t.Logf("got schema: %s", gotData)
-			t.Logf("want schema: %s", wantData)
+			gotJSON, err := json.Marshal(got)
+			if err != nil {
+				t.Errorf("json marshal: %v", err)
+			}
+			wantJSON, err := json.Marshal(want)
+			if err != nil {
+				t.Errorf("json marshal: %v", err)
+			}
+			if !bytes.Equal(gotJSON, wantJSON) {
+				t.Errorf("Got: %s\n Want: %s", gotJSON, wantJSON)
+			}
 		})
 	}
-}
-
-func isJSONEqual(got, want *jsonschema.Schema) bool {
-	gotData, err := json.Marshal(got)
-	if err != nil {
-		panic(err)
-	}
-	wantData, err := json.Marshal(want)
-	if err != nil {
-		panic(err)
-	}
-	return bytes.Equal(gotData, wantData)
 }

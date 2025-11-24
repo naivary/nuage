@@ -47,6 +47,8 @@ type jsonSchemaTagOpts struct {
 	dependentRequired map[string][]string
 }
 
+// INFO: parseJSONSchemaTagOpts is not respecting the field type for the choosen tags.
+// However, applyting these options to a schema will be done under consideration of the type.
 func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, error) {
 	typ := field.Type
 	if typ.Kind() == reflect.Slice || typ.Kind() == reflect.Map || typ.Kind() == reflect.Array {
@@ -101,14 +103,6 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 			}
 			opts.enum = append(opts.enum, lhs.Interface())
 		}
-	}
-
-	switch field.Type.Kind() {
-	case reflect.String:
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-	case reflect.Float32, reflect.Float64:
-	case reflect.Slice, reflect.Array:
-	case reflect.Map:
 	}
 
 	multipleOf, found := field.Tag.Lookup("multipleOf")
@@ -238,8 +232,6 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 	return &opts, nil
 }
 
-// TODO: enum cannot be set for object. Only the object key or value
-// same goes for arrays. Only for items
 func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema, isRoot bool) error {
 	switch schema.Type {
 	case "integer", "number", "boolean", "string":
