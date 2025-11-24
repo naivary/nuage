@@ -53,10 +53,6 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 		typ = typ.Elem()
 	}
 
-	switch field.Type.Kind() {
-	case reflect.String:
-	}
-
 	opts := jsonSchemaTagOpts{}
 	dflt, found := field.Tag.Lookup("default")
 	if found {
@@ -106,6 +102,15 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 			opts.enum = append(opts.enum, lhs.Interface())
 		}
 	}
+
+	switch field.Type.Kind() {
+	case reflect.String:
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+	case reflect.Float32, reflect.Float64:
+	case reflect.Slice, reflect.Array:
+	case reflect.Map:
+	}
+
 	multipleOf, found := field.Tag.Lookup("multipleOf")
 	if found {
 		f, err := strconv.ParseFloat(multipleOf, 64)
