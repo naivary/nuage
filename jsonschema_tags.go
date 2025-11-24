@@ -88,10 +88,13 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 			typ = typ.Elem()
 		}
 		for el := range strings.SplitSeq(enum, ",") {
-			lhs, _ := newVar(typ)
+			lhs, isPtr := newVar(typ)
 			err := assign(lhs, el)
 			if err != nil {
 				return nil, err
+			}
+			if isPtr {
+				lhs = lhs.Elem()
 			}
 			opts.enum = append(opts.enum, lhs.Interface())
 		}
@@ -293,6 +296,7 @@ func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema, isRoot b
 				schema.DependentRequired[jsonName] = requiredMembers
 			}
 		}
+		return opts.applyToSchema(schema.AdditionalProperties, false)
 	}
 	return nil
 }
