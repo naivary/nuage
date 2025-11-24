@@ -59,6 +59,7 @@ func assign(lhs reflect.Value, rhs ...string) error {
 		if lhs.OverflowFloat(float) {
 			return fmt.Errorf("overflow: %f to %s", float, lhs.Kind())
 		}
+		lhs.SetFloat(float)
 		return nil
 	case complex64, complex128:
 		c, err := strconv.ParseComplex(rhs[0], 128)
