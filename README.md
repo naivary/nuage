@@ -33,3 +33,5 @@ compatible as possible. The following Standards are implemented:
 
 Custom format support
 Require /livez and /readyz endpoints to make it k8s compatibale for liveness and readiness probe
+
+ADD GB helper and MB and KB e.g das man schreiben kann 5 * nuage.GB

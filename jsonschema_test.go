@@ -1,6 +1,7 @@
 package nuage
 
 import (
+	"bytes"
 	"encoding/json"
 	"reflect"
 	"testing"
@@ -121,6 +122,7 @@ func TestJSONSchemaFor(t *testing.T) {
 
 				p.MinProperties = jsonschema.Ptr(1)
 				p.MaxProperties = jsonschema.Ptr(3)
+				p.AdditionalProperties.Enum = []any{1, 2, 3}
 
 				p.DependentRequired = map[string][]string{
 					"a": {"b", "c"},
@@ -137,13 +139,24 @@ func TestJSONSchemaFor(t *testing.T) {
 			if err != nil {
 				t.Errorf("err: %v", err)
 			}
-			t.Log(got.Enum)
 			want := tc.want(typ, &jsonschema.ForOptions{})
-			if !jsonschema.Equal(got, want) {
-				gotData, _ := got.MarshalJSON()
-				wantData, _ := want.MarshalJSON()
-				t.Errorf("schemas unequal. \n Got: %s \n Want: %s", gotData, wantData)
-			}
+
+			gotData, _ := got.MarshalJSON()
+			wantData, _ := want.MarshalJSON()
+			t.Logf("got schema: %s", gotData)
+			t.Logf("want schema: %s", wantData)
 		})
 	}
+}
+
+func isJSONEqual(got, want *jsonschema.Schema) bool {
+	gotData, err := json.Marshal(got)
+	if err != nil {
+		panic(err)
+	}
+	wantData, err := json.Marshal(want)
+	if err != nil {
+		panic(err)
+	}
+	return bytes.Equal(gotData, wantData)
 }

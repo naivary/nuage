@@ -48,10 +48,24 @@ type jsonSchemaTagOpts struct {
 }
 
 func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, error) {
+	typ := field.Type
+	if typ.Kind() == reflect.Slice || typ.Kind() == reflect.Map || typ.Kind() == reflect.Array {
+		typ = typ.Elem()
+	}
+
+	switch field.Type.Kind() {
+	case reflect.String:
+	}
+
 	opts := jsonSchemaTagOpts{}
 	dflt, found := field.Tag.Lookup("default")
 	if found {
-		data, err := json.Marshal(dflt)
+		lhs := reflect.New(typ).Elem()
+		err := assign(lhs, dflt)
+		if err != nil {
+			return nil, err
+		}
+		data, err := json.Marshal(lhs.Interface())
 		if err != nil {
 			return nil, err
 		}
@@ -83,18 +97,11 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 	}
 	enum, found := field.Tag.Lookup("enum")
 	if found {
-		typ := field.Type
-		if typ.Kind() == reflect.Slice || typ.Kind() == reflect.Map || typ.Kind() == reflect.Array {
-			typ = typ.Elem()
-		}
 		for el := range strings.SplitSeq(enum, ",") {
-			lhs, isPtr := newVar(typ)
+			lhs := reflect.New(typ).Elem()
 			err := assign(lhs, el)
 			if err != nil {
 				return nil, err
-			}
-			if isPtr {
-				lhs = lhs.Elem()
 			}
 			opts.enum = append(opts.enum, lhs.Interface())
 		}
