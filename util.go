@@ -9,11 +9,11 @@ func methodOf(pattern string) string {
 	return method
 }
 
-func isStatusCodeInRange(statusCode int) bool {
+func isHTTPStatus(statusCode int) bool {
 	return statusCode >= 100 && statusCode <= 599
 }
 
-func isJSONishContentType(contentType string) bool {
+func isJSONish(contentType string) bool {
 	if contentType == ContentTypeJSON {
 		return true
 	}

@@ -54,7 +54,7 @@ func (o *Operation) IsValid() error {
 	if o.RequestBody != nil && methodOf(o.Pattern) == http.MethodGet {
 		return errors.New("operation validation: GET operations cannot have a request body")
 	}
-	if !isStatusCodeInRange(o.ResponseStatusCode) {
+	if !isHTTPStatus(o.ResponseStatusCode) {
 		return errors.New(
 			"operation validation: response status code has to be between 100 and 599. For further information about HTTP status codes see: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status",
 		)
@@ -102,7 +102,7 @@ func requestBodyFor[I any](op *Operation) (*RequestBody, error) {
 		Description: op.RequestDesc,
 		Required:    op.IsRequestBodyRequired,
 	}
-	if !isJSONishContentType(op.RequestContentType) {
+	if !isJSONish(op.RequestContentType) {
 		return reqBody, nil
 	}
 	if isEmptyJSON[I]() {
@@ -125,7 +125,7 @@ func responseFor[O any](op *Operation) (*Response, error) {
 		Description: op.ResponseDesc,
 		Headers:     headers,
 	}
-	if isEmptyJSON[O]() || !isJSONishContentType(op.ResponseContentType) {
+	if isEmptyJSON[O]() || !isJSONish(op.ResponseContentType) {
 		return res, nil
 	}
 	if res.Content == nil {
