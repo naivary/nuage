@@ -31,7 +31,7 @@ func jsonSchemaForType(typ reflect.Type, opts *jsonschema.ForOptions) (*jsonsche
 		if err != nil {
 			return nil, err
 		}
-		// ignore min and max properties for the root schema because it's a struct with pre-defined properties
+		// ignore min and max properties for the root schema (struct)
 		jsonOpts.minProperties = nil
 		jsonOpts.maxProperties = nil
 		err = jsonOpts.applyToSchema(schema, true)

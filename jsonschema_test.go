@@ -60,7 +60,7 @@ func TestJSONSchemaFor(t *testing.T) {
 				p.MultipleOf = jsonschema.Ptr(2.0)
 
 				p.Default = json.RawMessage(`5`)
-				p.Enum = []any{1.0, 2.0, 3.0}
+				p.Enum = []any{1, 2, 3}
 				return base
 			},
 		},
@@ -89,7 +89,7 @@ func TestJSONSchemaFor(t *testing.T) {
 		// slice (array) options
 		{
 			typ: struct {
-				A []string `json:"a" minItems:"1" maxItems:"5" uniqueItems:"true" minContains:"1" maxContains:"2" default:"[\"a\",\"b\"]" enum:"[\"x\"],[\"y\"]"`
+				A []string `json:"a" minItems:"1" maxItems:"5" uniqueItems:"true" minContains:"1" maxContains:"2"`
 			}{},
 			want: func(typ reflect.Type, opts *jsonschema.ForOptions) *jsonschema.Schema {
 				base := baseSchema(typ, opts)
@@ -100,12 +100,6 @@ func TestJSONSchemaFor(t *testing.T) {
 				p.UniqueItems = true
 				p.MinContains = jsonschema.Ptr(1)
 				p.MaxContains = jsonschema.Ptr(2)
-
-				p.Default = json.RawMessage(`["a","b"]`)
-				p.Enum = []any{
-					[]any{"x"},
-					[]any{"y"},
-				}
 				return base
 			},
 		},

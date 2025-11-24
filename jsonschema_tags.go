@@ -51,7 +51,11 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 	opts := jsonSchemaTagOpts{}
 	dflt, found := field.Tag.Lookup("default")
 	if found {
-		opts.dflt = json.RawMessage(fmt.Sprintf(`"%s"`, dflt))
+		data, err := json.Marshal(dflt)
+		if err != nil {
+			return nil, err
+		}
+		opts.dflt = json.RawMessage(data)
 	}
 	deprecated, found := field.Tag.Lookup("deprecated")
 	if found {
@@ -79,8 +83,17 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 	}
 	enum, found := field.Tag.Lookup("enum")
 	if found {
+		typ := field.Type
+		if typ.Kind() == reflect.Slice || typ.Kind() == reflect.Map || typ.Kind() == reflect.Array {
+			typ = typ.Elem()
+		}
 		for el := range strings.SplitSeq(enum, ",") {
-			opts.enum = append(opts.enum, any(el))
+			lhs, _ := newVar(typ)
+			err := assign(lhs, el)
+			if err != nil {
+				return nil, err
+			}
+			opts.enum = append(opts.enum, lhs.Interface())
 		}
 	}
 	multipleOf, found := field.Tag.Lookup("multipleOf")
@@ -213,12 +226,14 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 // TODO: enum cannot be set for object. Only the object key or value
 // same goes for arrays. Only for items
 func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema, isRoot bool) error {
-	// type agnostic options
-	schema.Default = opts.dflt
-	schema.Deprecated = opts.deprecated
-	schema.ReadOnly = opts.readOnly
-	schema.WriteOnly = opts.writeOnly
-	schema.Enum = opts.enum
+	switch schema.Type {
+	case "integer", "number", "boolean", "string":
+		schema.Default = opts.dflt
+		schema.Deprecated = opts.deprecated
+		schema.ReadOnly = opts.readOnly
+		schema.WriteOnly = opts.writeOnly
+		schema.Enum = opts.enum
+	}
 
 	switch schema.Type {
 	case "boolean":
@@ -232,10 +247,10 @@ func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema, isRoot b
 			case nil:
 				schema.Minimum = opts.minimum
 			default:
-				if *opts.minimum > *schema.Minimum {
-					schema.Minimum = opts.minimum
+				if *opts.minimum < *schema.Minimum {
+					return fmt.Errorf("jsonschema: invalid minimum value %f", *opts.minimum)
 				}
-				return fmt.Errorf("jsonschema: invalid minimum value %f", *opts.minimum)
+				schema.Minimum = opts.minimum
 			}
 		}
 		if opts.maximum != nil {
@@ -243,10 +258,10 @@ func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema, isRoot b
 			case nil:
 				schema.Maximum = opts.maximum
 			default:
-				if *opts.maximum <= *schema.Maximum {
-					schema.Maximum = opts.maximum
+				if *opts.maximum >= *schema.Maximum {
+					return fmt.Errorf("jsonschema: invalid maximum value %f", *opts.maximum)
 				}
-				return fmt.Errorf("jsonschema: invalid maximum value %f", *opts.maximum)
+				schema.Maximum = opts.maximum
 			}
 		}
 	case "string":

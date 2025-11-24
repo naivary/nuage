@@ -38,12 +38,9 @@ func TestParseJSONSchemaTagOpts(t *testing.T) {
 
 		// --- enum ---
 		{
-			field: reflect.StructField{Tag: `enum:"a,b,c"`},
+			field: reflect.StructField{Type: reflect.TypeFor[string](), Tag: `enum:"a,b,c"`},
 			isValid: func(got *jsonSchemaTagOpts) bool {
-				return len(got.enum) == 3 &&
-					got.enum[0] == "a" &&
-					got.enum[1] == "b" &&
-					got.enum[2] == "c"
+				return false
 			},
 		},
 

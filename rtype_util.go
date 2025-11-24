@@ -13,7 +13,12 @@ func assign(lhs reflect.Value, rhs ...string) error {
 		return errors.New("assign: rhs is empty")
 	}
 	if canCallIsNil(lhs.Type().Kind()) && lhs.IsNil() {
-		lhs.Set(reflect.New(lhs.Type().Elem()))
+		switch lhs.Kind() {
+		case reflect.Slice:
+			lhs.Set(reflect.MakeSlice(lhs.Type(), 0, 1))
+		default:
+			lhs.Set(reflect.New(lhs.Type().Elem()))
+		}
 	}
 	if isPointer(lhs.Type()) {
 		lhs = lhs.Elem()
@@ -25,6 +30,7 @@ func assign(lhs reflect.Value, rhs ...string) error {
 	switch lhs.Interface().(type) {
 	case string:
 		lhs.SetString(rhs[0])
+		return nil
 	case int, int8, int16, int32, int64:
 		integer, err := strconv.ParseInt(rhs[0], 10, 64)
 		if err != nil {
@@ -79,10 +85,17 @@ func assign(lhs reflect.Value, rhs ...string) error {
 		rvalue := reflect.ValueOf(t)
 		lhs.Set(rvalue)
 		return nil
+	// nil is needed because the type of any is nil
+	case any, nil:
+		if lhs.Kind() == reflect.Slice || lhs.Kind() == reflect.Map {
+			break
+		}
+		lhs.Set(reflect.ValueOf(rhs[0]))
+		return nil
 	}
 
-	switch lhs.Type().Kind() {
-	case reflect.Slice:
+	switch lhs.Kind() {
+	case reflect.Slice, reflect.Array:
 		elems := make([]reflect.Value, 0, len(rhs))
 		for _, rh := range rhs {
 			elem, isPtr := newVar(lhs.Type().Elem())
@@ -98,6 +111,7 @@ func assign(lhs reflect.Value, rhs ...string) error {
 		}
 		s := reflect.Append(lhs, elems...)
 		lhs.Set(s)
+		return nil
 	case reflect.Map:
 		if len(rhs)%2 != 0 {
 			return fmt.Errorf("assign: lhs kind of map expects an even number of rhs values. Got: %d", len(rhs))
