@@ -1,6 +1,8 @@
 package nuage
 
 import (
+	"fmt"
+	"regexp"
 	"strings"
 )
 
@@ -36,4 +38,13 @@ func isEmptyJSON[T any]() bool {
 		}
 	}
 	return true
+}
+
+func isPatternMatchingPathVars() bool {
+	re := regexp.MustCompile(`(?m){(.+)}`)
+	str := `/path/to/{endpoint}`
+	for i, match := range re.FindAllString(str, -1) {
+		fmt.Println(match, "found at index", i)
+	}
+	return false
 }

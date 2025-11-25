@@ -13,16 +13,11 @@ const _openAPIVersion = "3.1.0"
 // ENUM(MIT, Apache-2.0)
 type LicenseKeyword string
 
-// ENUM(APIKey, HTTP, MutualTLS, OAuth2, OpenIDConnect)
-type SecurityType string
-
 // ENUM(matrix, label, simple, form, spaceDelim, pipeDelim, deepObject, cookie)
 type Style string
 
 // ENUM(path, query, header, cookie)
 type ParamIn string
-
-type SecurityRequirement map[string][]string
 
 type OpenAPI struct {
 	Version           string               `json:"openapi"`
@@ -123,7 +118,8 @@ type MediaType struct {
 }
 
 type Components struct {
-	Schemas map[string]*jsonschema.Schema `json:"schemas,omitempty"`
+	Schemas         map[string]*jsonschema.Schema `json:"schemas,omitempty"`
+	SecuritySchemes map[string]SecurityScheme     `json:"securitySchemes,omitempty"`
 }
 
 type Server struct {
