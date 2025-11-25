@@ -9,6 +9,7 @@ import (
 )
 
 func jsonSchemaForType(typ reflect.Type, opts *jsonschema.ForOptions) (*jsonschema.Schema, error) {
+	typ = deref(typ)
 	if typ.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("josnschema: type is not struct %s", typ)
 	}

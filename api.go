@@ -73,6 +73,10 @@ func Handle[I, O any](api *api, op *Operation, fn HandlerFuncErr[I, O]) error {
 	if err := operationSpecFor[I, O](op); err != nil {
 		return err
 	}
+	if !isPatternMatchingDefinedParams(op.Pattern, op.Parameters) {
+		return fmt.Errorf("handle: path parameters have to be defined by your input struct")
+	}
+
 	pathItem := api.doc.Paths[op.Pattern]
 	if pathItem == nil {
 		pathItem = &PathItem{}

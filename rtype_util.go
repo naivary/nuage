@@ -191,7 +191,7 @@ func fieldsOf[S any]() ([]reflect.StructField, error) {
 		return nil, errors.New("fields of: is not struct")
 	}
 	rtype := reflect.TypeFor[S]()
-	return reflect.VisibleFields(rtype), nil
+	return reflect.VisibleFields(deref(rtype)), nil
 }
 
 func isIgnoredFromJSONMarshal(field reflect.StructField) bool {

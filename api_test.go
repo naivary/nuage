@@ -33,12 +33,12 @@ func TestHandle(t *testing.T) {
 	if err != nil {
 		t.Errorf("new api: %v", err)
 	}
-	handler := HandlerFuncErr[testRequest, testResponse](func(r *http.Request, input *testRequest) (*testResponse, error) {
+	handler := HandlerFuncErr[testRequest, *testResponse](func(r *http.Request, input testRequest) (*testResponse, error) {
 		return nil, nil
 	})
 	err = Handle(api, &Operation{
 		Description:         "something",
-		Pattern:             "GET /path/to/handler",
+		Pattern:             "GET /path/to/handler/{p1}",
 		OperationID:         "test-operation-id",
 		ResponseStatusCode:  http.StatusOK,
 		ResponseDesc:        "something",

@@ -21,7 +21,7 @@ type Operation struct {
 	RequestBody *RequestBody         `json:"requestBody,omitempty"`
 	Responses   map[string]*Response `json:"responses,omitempty"`
 
-	// nuage specific 
+	// nuage specific
 	Pattern string `json:"-"`
 
 	ResponseContentType string `json:"-"`
