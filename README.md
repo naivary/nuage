@@ -22,7 +22,6 @@ compatible as possible. The following Standards are implemented:
 - RFC 6902 JSON Patch
 - RFC 7386 JSON Merge PATCH
 - RFC 9457 HTTP Problem Details
-- JSON:API Spec
 - RFC 9421 HTTP Message Signatures
 - RFC 9110 Conditional Requests
 - RFC 9333 RateLimit Headers
@@ -33,5 +32,3 @@ compatible as possible. The following Standards are implemented:
 
 Custom format support
 Require /livez and /readyz endpoints to make it k8s compatibale for liveness and readiness probe
-
-ADD GB helper and MB and KB e.g das man schreiben kann 5 * nuage.GB

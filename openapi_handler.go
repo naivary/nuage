@@ -19,18 +19,24 @@ type openAPIDocQueryResponse struct {
 
 func queryOpenAPIDoc(doc *OpenAPI) HandlerFuncErr[openAPIDocQueryRequest, *openAPIDocQueryResponse] {
 	var (
-		init           sync.Once
-		openAPIJSON    any
-		openAPIJSONErr error
+		init                    sync.Once
+		openAPIJSONData         []byte
+		openAPIJSON             any
+		openAPIJSONMarshalErr   error
+		openAPIJSONUnmarshalErr error
 	)
 	// TODO: if uri is not empty get the path item of that uri
 	return HandlerFuncErr[openAPIDocQueryRequest, *openAPIDocQueryResponse](
 		func(r *http.Request, input openAPIDocQueryRequest) (*openAPIDocQueryResponse, error) {
 			init.Do(func() {
-				openAPIJSON, openAPIJSONErr = json.Marshal(doc)
+				openAPIJSONData, openAPIJSONMarshalErr = json.Marshal(doc)
+				openAPIJSONUnmarshalErr = json.Unmarshal(openAPIJSONData, &openAPIJSON)
 			})
-			if openAPIJSONErr != nil {
-				return nil, openAPIJSONErr
+			if openAPIJSONMarshalErr != nil {
+				return nil, openAPIJSONMarshalErr
+			}
+			if openAPIJSONUnmarshalErr != nil {
+				return nil, openAPIJSONUnmarshalErr
 			}
 			p, err := jsonpath.Parse(input.JSONPath)
 			if err != nil {
