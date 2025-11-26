@@ -12,3 +12,17 @@ func NewRequest(method, url string, body io.Reader) *http.Request {
 	}
 	return r
 }
+
+func AddHeaders(r *http.Request, headers map[string]string) {
+	for key, value := range headers {
+		r.Header.Set(key, value)
+	}
+}
+
+func AddQueryParams(r *http.Request, params map[string]string) {
+	q := r.URL.Query()
+	for key, value := range params {
+		q.Set(key, value)
+	}
+	r.URL.RawQuery = q.Encode()
+}
