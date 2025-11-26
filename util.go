@@ -42,7 +42,7 @@ func isEmptyJSON[T any]() bool {
 	return true
 }
 
-func isPatternMatchingDefinedParams(pattern string, params []*Parameter) bool {
+func isPatternAndPathParamsConsistent(pattern string, params []*Parameter) bool {
 	pathParams := filter(params, func(el *Parameter) bool {
 		return el.ParamIn == ParamInPath
 	})

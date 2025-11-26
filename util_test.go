@@ -22,7 +22,7 @@ func TestIsPatternMatchingPathVars(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
-			got := isPatternMatchingDefinedParams(tc.pattern, tc.params)
+			got := isPatternAndPathParamsConsistent(tc.pattern, tc.params)
 			if got != tc.want {
 				t.Errorf("Want: %t. Got: %t", tc.want, got)
 			}
