@@ -125,67 +125,6 @@ func (x *ParamIn) AppendText(b []byte) ([]byte, error) {
 }
 
 const (
-	SecurityTypeAPIKey        SecurityType = "APIKey"
-	SecurityTypeHTTP          SecurityType = "HTTP"
-	SecurityTypeMutualTLS     SecurityType = "MutualTLS"
-	SecurityTypeOAuth2        SecurityType = "OAuth2"
-	SecurityTypeOpenIDConnect SecurityType = "OpenIDConnect"
-)
-
-var ErrInvalidSecurityType = errors.New("not a valid SecurityType")
-
-// String implements the Stringer interface.
-func (x SecurityType) String() string {
-	return string(x)
-}
-
-// IsValid provides a quick way to determine if the typed value is
-// part of the allowed enumerated values
-func (x SecurityType) IsValid() bool {
-	_, err := ParseSecurityType(string(x))
-	return err == nil
-}
-
-var _SecurityTypeValue = map[string]SecurityType{
-	"APIKey":        SecurityTypeAPIKey,
-	"HTTP":          SecurityTypeHTTP,
-	"MutualTLS":     SecurityTypeMutualTLS,
-	"OAuth2":        SecurityTypeOAuth2,
-	"OpenIDConnect": SecurityTypeOpenIDConnect,
-}
-
-// ParseSecurityType attempts to convert a string to a SecurityType.
-func ParseSecurityType(name string) (SecurityType, error) {
-	if x, ok := _SecurityTypeValue[name]; ok {
-		return x, nil
-	}
-	return SecurityType(""), fmt.Errorf("%s is %w", name, ErrInvalidSecurityType)
-}
-
-// MarshalText implements the text marshaller method.
-func (x SecurityType) MarshalText() ([]byte, error) {
-	return []byte(string(x)), nil
-}
-
-// UnmarshalText implements the text unmarshaller method.
-func (x *SecurityType) UnmarshalText(text []byte) error {
-	tmp, err := ParseSecurityType(string(text))
-	if err != nil {
-		return err
-	}
-	*x = tmp
-	return nil
-}
-
-// AppendText appends the textual representation of itself to the end of b
-// (allocating a larger slice if necessary) and returns the updated slice.
-//
-// Implementations must not retain b, nor mutate any bytes within b[:len(b)].
-func (x *SecurityType) AppendText(b []byte) ([]byte, error) {
-	return append(b, x.String()...), nil
-}
-
-const (
 	StyleMatrix     Style = "matrix"
 	StyleLabel      Style = "label"
 	StyleSimple     Style = "simple"

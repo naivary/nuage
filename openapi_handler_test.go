@@ -28,9 +28,12 @@ func TestQueryOpenAPIDoc(t *testing.T) {
 		},
 	}
 
-	hl := queryOpenAPIDoc(doc)
+	q, err := NewOpenAPIQuerier(doc)
+	if err != nil {
+		t.Errorf("OpenAPI Querier: %v", err)
+	}
+	hl := queryOpenAPIDoc(q)
 	r := nuagetest.NewRequest(http.MethodGet, "", nil)
-
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			res, err := hl(r, tc.input)
