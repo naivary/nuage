@@ -20,7 +20,7 @@ func queryOpenAPIDoc(q *openAPIQuerier) HandlerFuncErr[openAPIDocQueryRequest, *
 		func(r *http.Request, input openAPIDocQueryRequest) (*openAPIDocQueryResponse, error) {
 			nodes, err := q.Select(input.JSONPath)
 			if err != nil {
-				// bad request
+				// bad request status code
 				return nil, err
 			}
 			return &openAPIDocQueryResponse{Result: nodes}, nil

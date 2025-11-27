@@ -54,11 +54,9 @@ func (a *api) Doc() *OpenAPI {
 	return a.doc
 }
 
-// TODO: check if request input struct has path parameters which are defined in
-// the path also in the pattern.
 func Handle[I, O any](api *api, op *Operation, fn HandlerFuncErr[I, O]) error {
 	if !isStruct[I]() || !isStruct[O]() {
-		return errors.New("handle: both input and output data types have to be of kind struct")
+		return errors.New("handle: input and output type parameters have to be of kind struct")
 	}
 	if err := op.IsValid(); err != nil {
 		return err
@@ -74,7 +72,9 @@ func Handle[I, O any](api *api, op *Operation, fn HandlerFuncErr[I, O]) error {
 		return err
 	}
 	if !isPatternAndPathParamsConsistent(op.Pattern, op.Parameters) {
-		return fmt.Errorf("handle: path parameters have to be defined by your input struct")
+		return errors.New(
+			`every path parameter in the route pattern must have a matching field in your input struct (using path:"name"), and every path:"name" field must correspond to a parameter in the route`,
+		)
 	}
 
 	pathItem := api.doc.Paths[op.Pattern]

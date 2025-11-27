@@ -30,5 +30,6 @@ compatible as possible. The following Standards are implemented:
 
 ## TODOs
 
-Custom format support
-Require /livez and /readyz endpoints to make it k8s compatibale for liveness and readiness probe
+- Custom format support Require /livez and /readyz endpoints to make it k8s
+  compatibale for liveness and readiness probe
+- Allow raw reponse returns of []byte
