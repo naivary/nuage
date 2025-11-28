@@ -30,7 +30,7 @@ type Operation struct {
 
 	RequestContentType    string `json:"-"`
 	RequestDesc           string `json:"-"`
-	IsRequestBodyRequired bool   `json:"-"`
+	IsRequestBodyRequired *bool  `json:"-"`
 }
 
 func (o *Operation) IsValid() error {
@@ -78,6 +78,9 @@ func operationSpecFor[I, O any](op *Operation) error {
 		return err
 	}
 	op.RequestBody = requestBody
+	if op.IsRequestBodyRequired == nil {
+		op.IsRequestBodyRequired = Ptr(true)
+	}
 
 	response, err := responseFor[O](op)
 	if err != nil {

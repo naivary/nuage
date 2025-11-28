@@ -16,14 +16,14 @@ func jsonSchemaForType(typ reflect.Type, opts *jsonschema.ForOptions) (*jsonsche
 	if opts == nil {
 		opts = &jsonschema.ForOptions{}
 	}
-	schema, err := jsonschema.ForType(typ, opts)
+	rootSchema, err := jsonschema.ForType(typ, opts)
 	if err != nil {
 		return nil, err
 	}
 	fields := reflect.VisibleFields(typ)
 	for _, field := range fields {
 		jsonName := jsonNameOf(field)
-		propertySchema := schema.Properties[jsonName]
+		propertySchema := rootSchema.Properties[jsonName]
 		jsonOpts, err := parseJSONSchemaTagOpts(field)
 		if err != nil {
 			return nil, err
@@ -32,16 +32,17 @@ func jsonSchemaForType(typ reflect.Type, opts *jsonschema.ForOptions) (*jsonsche
 		if err != nil {
 			return nil, err
 		}
-		// ignore min and max properties for the root schema (struct)
+		// ignore min and max properties for the root schema because additionalProperties will be false
+		// and the properties are pre-defined with required/dependentRequired
 		jsonOpts.minProperties = nil
 		jsonOpts.maxProperties = nil
-		err = jsonOpts.applyToSchema(schema, true)
+		err = jsonOpts.applyToSchema(rootSchema, true)
 		if err != nil {
 			return nil, err
 		}
-		schema.Properties[jsonName] = propertySchema
+		rootSchema.Properties[jsonName] = propertySchema
 	}
-	return schema, nil
+	return rootSchema, nil
 }
 
 func jsonSchemaFor[T any](opts *jsonschema.ForOptions) (*jsonschema.Schema, error) {

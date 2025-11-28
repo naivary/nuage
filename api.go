@@ -50,10 +50,6 @@ func NewAPI(doc *OpenAPI, cfg *APIConfig) (*api, error) {
 	return a, nil
 }
 
-func (a *api) Doc() *OpenAPI {
-	return a.doc
-}
-
 func Handle[I, O any](api *api, op *Operation, fn HandlerFuncErr[I, O]) error {
 	if !isStruct[I]() || !isStruct[O]() {
 		return errors.New("handle: input and output type parameters have to be of kind struct")
@@ -73,7 +69,7 @@ func Handle[I, O any](api *api, op *Operation, fn HandlerFuncErr[I, O]) error {
 	}
 	if !isPatternAndPathParamsConsistent(op.Pattern, op.Parameters) {
 		return errors.New(
-			`every path parameter in the route pattern must have a matching field in your input struct (using path:"name"), and every path:"name" field must correspond to a parameter in the route`,
+			`handle: every path parameter in the route pattern must have a matching field in your input struct (using path:"p1"), and every path:"name" field must correspond to a parameter in the pattern e.g. /path/to/{p1}/endpoint`,
 		)
 	}
 
@@ -91,4 +87,8 @@ func Handle[I, O any](api *api, op *Operation, fn HandlerFuncErr[I, O]) error {
 	}
 	api.mux.Handle(op.Pattern, &handler)
 	return nil
+}
+
+func (a *api) Doc() *OpenAPI {
+	return a.doc
 }
