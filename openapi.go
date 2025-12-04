@@ -97,6 +97,26 @@ func (p *PathItem) AddOperation(method string, op *Operation) error {
 	return nil
 }
 
+func (p *PathItem) OperationFor(method string) *Operation {
+	switch method {
+	case http.MethodGet:
+		return p.Get
+	case http.MethodPut:
+		return p.Put
+	case http.MethodPost:
+		return p.Post
+	case http.MethodDelete:
+		return p.Delete
+	case http.MethodOptions:
+		return p.Options
+	case http.MethodHead:
+		return p.Head
+	case http.MethodPatch:
+		return p.Patch
+	case http.MethodTrace:
+		return p.Trace
+}
+
 type RequestBody struct {
 	Description string                `json:"description,omitempty"`
 	Required    bool                  `json:"required"`

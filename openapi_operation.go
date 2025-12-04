@@ -103,7 +103,8 @@ func requestBodyFor[I any](op *Operation) (*RequestBody, error) {
 	}
 	reqBody := &RequestBody{
 		Description: op.RequestDesc,
-		Required:    op.IsRequestBodyRequired,
+		// is it safe to dereference always?
+		Required: *op.IsRequestBodyRequired,
 	}
 	if !isJSONish(op.RequestContentType) {
 		return reqBody, nil

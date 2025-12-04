@@ -26,7 +26,7 @@ func TestQueryOpenAPIDoc(t *testing.T) {
 			Title:   "test-title",
 		},
 	}
-	q, err := NewOpenAPIQuerier(doc)
+	q, err := NewOpenAPIQuerier(doc, &http.ServeMux{})
 	if err != nil {
 		t.Errorf("OpenAPI Querier: %v", err)
 	}
