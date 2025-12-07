@@ -30,6 +30,7 @@ compatible as possible. The following Standards are implemented:
 
 ## TODOs
 
-- Custom format support Require /livez and /readyz endpoints to make it k8s
+- Require /livez and /readyz endpoints to make it k8s
   compatibale for liveness and readiness probe
 - Allow raw reponse returns of []byte
+- Allow the retrieval of JSON Schemas by providing the official doc pattern e.g. /path/to/{p1}/endpoint (currently working on)
