@@ -115,6 +115,9 @@ func (p *PathItem) OperationFor(method string) *Operation {
 		return p.Patch
 	case http.MethodTrace:
 		return p.Trace
+	default:
+		return nil
+	}
 }
 
 type RequestBody struct {

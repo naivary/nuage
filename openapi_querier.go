@@ -1,15 +1,14 @@
-//go:generate go tool go-enum --marshal --nocomments
 package nuage
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strconv"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/theory/jsonpath"
 )
-
-// ENUM(request, response)
-type SchemaType string
 
 type openAPIQuerier struct {
 	doc  *OpenAPI
@@ -32,17 +31,53 @@ func NewOpenAPIQuerier(doc *OpenAPI, mux *http.ServeMux) (*openAPIQuerier, error
 	return &q, nil
 }
 
-func (o *openAPIQuerier) Select(jsonPath string) (jsonpath.NodeList, error) {
+func (o *openAPIQuerier) Select(jsonPath string, input any) (jsonpath.NodeList, error) {
 	p, err := jsonpath.Parse(jsonPath)
 	if err != nil {
 		return nil, err
 	}
-	nodes := p.Select(o.json)
-	return nodes, nil
+	if input == nil {
+		input = o.json
+	}
+	return p.Select(input), nil
 }
 
-func (o *openAPIQuerier) DocOf(r *http.Request) *Operation {
+func (o *openAPIQuerier) operationFor(r *http.Request) (*Operation, error) {
 	_, pattern := o.mux.Handler(r)
-	pathItem := o.doc.Paths[pattern]
-	return pathItem.OperationFor(r.Method)
+	if pattern == "" {
+		return nil, fmt.Errorf("openapi querier: request schema not found for %s", r.URL.RawPath)
+	}
+	// pathItem MUST exist
+	return o.doc.Paths[pattern].OperationFor(r.Method), nil
+}
+
+func (o *openAPIQuerier) RequestBodySchemaFor(r *http.Request) (*jsonschema.Schema, error) {
+	op, err := o.operationFor(r)
+	if err != nil {
+		return nil, err
+	}
+	contentType := r.Header.Get("Content-Type")
+	mediaType, found := op.RequestBody.Content[contentType]
+	if !found {
+		return nil, fmt.Errorf("openapi querier: media type `%s` does not exist", contentType)
+	}
+	return mediaType.Schema, nil
+}
+
+func (o *openAPIQuerier) ResponseSchemaFor(r *http.Request, code int) (*jsonschema.Schema, error) {
+	op, err := o.operationFor(r)
+	if err != nil {
+		return nil, err
+	}
+	codeAsText := strconv.Itoa(code)
+	res, found := op.Responses[codeAsText]
+	if !found {
+		return nil, fmt.Errorf("openapi querier: no response for `%s` status code", codeAsText)
+	}
+	contentType := r.Header.Get("Content-Type")
+	mediaType, found := res.Content[contentType]
+	if !found {
+		return nil, fmt.Errorf("openapi querier: media type `%s` does not exist", contentType)
+	}
+	return mediaType.Schema, nil
 }

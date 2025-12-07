@@ -8,7 +8,6 @@ import (
 
 type openAPIDocQueryRequest struct {
 	JSONPath string `query:"jsonpath"`
-	URI      string `query:"uri"`
 }
 
 type openAPIDocQueryResponse struct {
@@ -18,7 +17,7 @@ type openAPIDocQueryResponse struct {
 func queryOpenAPIDoc(q *openAPIQuerier) HandlerFuncErr[openAPIDocQueryRequest, *openAPIDocQueryResponse] {
 	return HandlerFuncErr[openAPIDocQueryRequest, *openAPIDocQueryResponse](
 		func(r *http.Request, input openAPIDocQueryRequest) (*openAPIDocQueryResponse, error) {
-			nodes, err := q.Select(input.JSONPath)
+			nodes, err := q.Select(input.JSONPath, nil)
 			if err != nil {
 				// bad request status code
 				return nil, err
