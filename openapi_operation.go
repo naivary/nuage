@@ -89,7 +89,11 @@ func operationSpecFor[I, O any](op *Operation) error {
 	if op.Responses == nil {
 		op.Responses = make(map[string]*Response, 1)
 	}
-	op.Responses[strconv.Itoa(op.ResponseStatusCode)] = response
+	codeAsText := strconv.Itoa(op.ResponseStatusCode)
+	_, isResDefined := op.Responses[codeAsText]
+	if !isResDefined {
+		op.Responses[codeAsText] = response
+	}
 	return nil
 }
 
