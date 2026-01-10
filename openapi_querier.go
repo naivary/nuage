@@ -2,8 +2,11 @@ package nuage
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 
+	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/theory/jsonpath"
 )
 
@@ -37,4 +40,20 @@ func (o *openAPIQuerier) Select(jsonPath string, input any) (jsonpath.NodeList, 
 		input = o.json
 	}
 	return p.Select(input), nil
+}
+
+func (o *openAPIQuerier) RequestSchemaOf(r *http.Request) (*jsonschema.Schema, error) {
+	_, uri := o.mux.Handler(r)
+	_, pattern, _ := strings.Cut(uri, " ")
+	item, ok := o.doc.Paths[pattern]
+	if !ok {
+		return nil, fmt.Errorf("request schema for: path item not found for %s", pattern)
+	}
+	contentType := r.Header.Get("Content-Type")
+	// TODO: Get Operation dynamicall based on the method from strings.Cut
+	mediaType, ok := item.Get.RequestBody.Content[contentType]
+	if !ok {
+		return nil, fmt.Errorf("requestSchemaFor: no request schema found for %s and content type %s", pattern, contentType)
+	}
+	return mediaType.Schema, nil
 }
