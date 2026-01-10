@@ -4,7 +4,10 @@ go 1.25.1
 
 tool github.com/abice/go-enum
 
-require github.com/google/jsonschema-go v0.3.0
+require (
+	github.com/google/jsonschema-go v0.4.2
+	github.com/theory/jsonpath v0.10.2
+)
 
 require (
 	dario.cat/mergo v1.0.1 // indirect
@@ -25,7 +28,6 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/spf13/cast v1.7.0 // indirect
-	github.com/theory/jsonpath v0.10.2 // indirect
 	github.com/urfave/cli/v2 v2.27.7 // indirect
 	github.com/xrash/smetrics v0.0.0-20240521201337-686a1a2994c1 // indirect
 	golang.org/x/crypto v0.35.0 // indirect
