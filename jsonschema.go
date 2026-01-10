@@ -13,9 +13,6 @@ func jsonSchemaForType(typ reflect.Type, opts *jsonschema.ForOptions) (*jsonsche
 	if typ.Kind() != reflect.Struct {
 		return nil, fmt.Errorf("josnschema: type is not struct %s", typ)
 	}
-	if opts == nil {
-		opts = &jsonschema.ForOptions{}
-	}
 	rootSchema, err := jsonschema.ForType(typ, opts)
 	if err != nil {
 		return nil, err

@@ -233,7 +233,7 @@ func parseJSONSchemaTagOpts(field reflect.StructField) (*jsonSchemaTagOpts, erro
 }
 
 func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema, isRoot bool) error {
-	switch schema.Type {
+	switch jsonSchemaTypeFor(schema) {
 	case "integer", "number", "boolean", "string":
 		schema.Default = opts.dflt
 		schema.Deprecated = opts.deprecated
@@ -303,4 +303,18 @@ func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema, isRoot b
 		return opts.applyToSchema(schema.AdditionalProperties, false)
 	}
 	return nil
+}
+
+func jsonSchemaTypeFor(schema *jsonschema.Schema) string {
+	typ := schema.Type
+	if typ != "" {
+		return typ
+	}
+	for _, jschemaType := range schema.Types {
+		if jschemaType != "null" {
+			typ = jschemaType
+			break
+		}
+	}
+	return typ
 }

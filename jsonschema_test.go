@@ -135,11 +135,11 @@ func TestJSONSchemaFor(t *testing.T) {
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			typ := reflect.TypeOf(tc.typ)
-			got, err := jsonSchemaForType(typ, &jsonschema.ForOptions{})
+			got, err := jsonSchemaForType(typ, nil)
 			if err != nil {
 				t.Errorf("err: %v", err)
 			}
-			want := tc.want(typ, &jsonschema.ForOptions{})
+			want := tc.want(typ, nil)
 
 			gotJSON, err := json.Marshal(got)
 			if err != nil {
