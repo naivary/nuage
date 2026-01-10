@@ -289,16 +289,17 @@ func (opts *jsonSchemaTagOpts) applyToSchema(schema *jsonschema.Schema, isRoot b
 	case "object":
 		schema.MinProperties = opts.minProperties
 		schema.MaxProperties = opts.maxProperties
-		if len(opts.dependentRequired) > 0 && isRoot {
-			for jsonName, requiredMembers := range opts.dependentRequired {
-				if slices.Contains(schema.Required, jsonName) {
-					return fmt.Errorf("jsonschema: dependentRequired cannot be used with a required field %s", jsonName)
-				}
-				if schema.DependentRequired == nil {
-					schema.DependentRequired = make(map[string][]string)
-				}
-				schema.DependentRequired[jsonName] = requiredMembers
+		if len(opts.dependentRequired) == 0 || !isRoot {
+			return opts.applyToSchema(schema.AdditionalProperties, false)
+		}
+		for jsonName, requiredMembers := range opts.dependentRequired {
+			if slices.Contains(schema.Required, jsonName) {
+				return fmt.Errorf("jsonschema: dependentRequired cannot be used with a required field %s", jsonName)
 			}
+			if schema.DependentRequired == nil {
+				schema.DependentRequired = make(map[string][]string)
+			}
+			schema.DependentRequired[jsonName] = requiredMembers
 		}
 		return opts.applyToSchema(schema.AdditionalProperties, false)
 	}
