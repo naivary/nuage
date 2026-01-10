@@ -30,7 +30,11 @@ compatible as possible. The following Standards are implemented:
 
 ## TODOs
 
-- Require /livez and /readyz endpoints to make it k8s
-  compatibale for liveness and readiness probe
-- Allow raw reponse returns of []byte
-- Allow the retrieval of JSON Schemas by providing the official doc pattern e.g. /path/to/{p1}/endpoint (currently working on)
+- Require /livez and /readyz endpoints to make it k8s compatibale for liveness
+  and readiness probe
+- Allow raw reponse returns of type []byte
+- Allow the retrieval of JSON Schemas by providing the official doc pattern e.g.
+  /path/to/{p1}/endpoint (currently working on)
+- Make nuage 0 Reflection dependent and use it as a code generation tool to
+  prepare everything needed for openapi and decoding encoding on compilation not
+  during runtime. This would also allow.
