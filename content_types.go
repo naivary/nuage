@@ -23,4 +23,15 @@ const (
 	// to a JSON document. The request body must be a JSON array of
 	// patch operations.
 	ContentTypeJSONPatch = "application/json-patch+json"
+
+	// ContentTypeHTTPError defines the MIME type used for HTTP error responses
+	// that follow the "Problem Details for HTTP APIs" specification (RFC 9457).
+	//
+	// This content type, "application/problem+json", indicates that the
+	// response body contains a standardized JSON object describing the
+	// error, including fields such as "type", "title", "status", "detail",
+	// and optionally "instance". It is intended to provide clients with
+	// machine-readable error information in a consistent format, which can
+	// be programmatically processed or displayed to users.
+	ContentTypeHTTPError = "application/problem+json"
 )
