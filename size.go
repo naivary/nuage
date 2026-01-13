@@ -1,7 +1,7 @@
 package nuage
 
 const (
-	Bit  int = 0
+	Bit  int = 1
 	Byte     = 8 * Bit
 	KiB      = 1024 * Byte
 	MiB      = 1024 * KiB

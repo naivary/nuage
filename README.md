@@ -1,40 +1,54 @@
 # nuage
 
-nuage is a minimal Go REST API framework based on best practices and official
-standards. It is inspired by huma (currently not mantained) and FastAPI with a
-more explicit and standard library conform approach.
+Nuage (French for cloud) is a cloud-native, API-first framework for Go designed
+to build robust, scalable, and standards-compliant services.
 
-# Conforming to many standards
+Nuage is built on official RFCs and industry best practices, ensuring
+consistency, interoperability, and long-term maintainability. It focuses on
+developer productivity while embracing modern cloud architectures from the
+ground up.
 
-nuage is built from the ground up with the idea of conforming to as many
-standards and best practices of the web and industry to make your API as
-compatible as possible. The following Standards are implemented:
+## Philisophy
 
-- RFC 9110 HTTP Semantics
-- RFC 9111 HTTP Caching
-- RFC 9112 HTTP/1.1
-- RFC 9114 HTTP/3 (quic)
-- RFC 3986 URI Syntax
-- RFC 8288 Web Linking
-- RFC 9114 .12 Content Negotiation
-- RFC 8259 JSON Data Format
-- JSON Schema (2020-12)
-- RFC 6902 JSON Patch
-- RFC 7386 JSON Merge PATCH
-- RFC 9457 HTTP Problem Details
-- RFC 9421 HTTP Message Signatures
-- RFC 9110 Conditional Requests
-- RFC 9333 RateLimit Headers
-- OpenAPI Spec
-- AsyncAPI Spec
+nuage is a opinioated framework trying to force the developer to implement clean
+and robust APIs and make it hard to develop bad patterns. For that it is based
+on the following principles.
 
-## TODOs
+### JSON Only
 
-- Require /livez and /readyz endpoints to make it k8s compatibale for liveness
-  and readiness probe
-- Allow raw reponse returns of type []byte
-- Allow the retrieval of JSON Schemas by providing the official doc pattern e.g.
-  /path/to/{p1}/endpoint (currently working on)
-- Make nuage 0 Reflection dependent and use it as a code generation tool to
-  prepare everything needed for openapi and decoding encoding on compilation not
-  during runtime. This would also allow.
+To make APIs compatible to various other tools it is best practice to
+communicate using [JSON](https://datatracker.ietf.org/doc/html/rfc8259). Other
+formats such as XML are not supported. Furhter using JSON allows nuage to
+leverage JSON Schema and OpenAPI standards for documentation and validation.
+
+### Configuration
+
+Because nuage is a cloud-native first framework and implements matching factors
+of the [12 Factor App](https://12factor.net/). This includes allowing to
+configure nuage using only environment variables.
+
+### Logging
+
+Because of the 12FA principles logging will be only possible to the stdout and
+in structured format.
+
+### HTTP Errors
+
+Errors are part of every software and have to be first-class citizens in the
+design. RFC9457 is describing an official standard for returning HTTP errors
+which is the only error response from nuage.
+
+### OpenAPI
+
+OpenAPI is a standard to document APIs and make them compatible to many tools to
+generate REST clients, CLIs etc. This is making it a central design document for
+many developers. Therefore nuage is trying to generate as much of the OpenAPI
+documentation from your code with the possibility of extending it for further
+customization.
+
+### Compile time over Runtime
+
+Reflection is a nice tool in Go allowing for powerful analysis of types but the
+operations are expensive and create large overheads. Therefore any reflection in
+the hot-path (e.g. requests) are outsourced to compile time by generating the
+required code for the runtime beforehand.
