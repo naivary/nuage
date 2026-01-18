@@ -1,9 +1,9 @@
 # nuage
 
-Nuage (French for cloud) is a cloud-native, API-first framework for Go designed
+nuage (French for cloud) is a cloud-native, API-first framework for Go designed
 to build robust, scalable, and standards-compliant services.
 
-Nuage is built on official RFCs and industry best practices, ensuring
+nuage is built on official RFCs and industry best practices, ensuring
 consistency, interoperability, and long-term maintainability. It focuses on
 developer productivity while embracing modern cloud architectures from the
 ground up.
