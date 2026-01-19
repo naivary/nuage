@@ -5,6 +5,9 @@ import (
 	"fmt"
 )
 
+// ErrJSONEncoding returned error if the encoding of the ResponseModel is failing.
+var ErrJSONEncoding = &HTTPError{}
+
 // HTTPError represents an error response formatted according to RFC 9457
 // (Problem Details for HTTP APIs).
 //

@@ -1,7 +1,13 @@
 package nuage
 
-type Nuage struct{}
+import "net/http"
 
-func New() *Nuage {
-	return &Nuage{}
+type Nuage struct {
+	mux *http.ServeMux
+}
+
+func New() (*Nuage, error) {
+	return &Nuage{
+		mux: http.NewServeMux(),
+	}, nil
 }
