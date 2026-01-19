@@ -9,7 +9,7 @@ var _ http.Handler = (HandlerFuncErr[struct{}, struct{}])(nil)
 
 // HandlerFuncErr represents the primary request handler function signature
 // used by the framework to implement REST API endpoints.
-type HandlerFuncErr[RequestModel, ResponseModel any] func(ctx *Context, r RequestModel) (ResponseModel, error)
+type HandlerFuncErr[Request, Response any] func(ctx *Context, r Request) (Response, error)
 
 func (hl HandlerFuncErr[RequestModel, ResponseModel]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req RequestModel
@@ -21,7 +21,7 @@ func (hl HandlerFuncErr[RequestModel, ResponseModel]) ServeHTTP(w http.ResponseW
 	}
 	err = json.NewEncoder(w).Encode(&res)
 	if err != nil {
-		// handle err 
+		// handle err
 		return
 	}
 }

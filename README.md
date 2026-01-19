@@ -55,6 +55,5 @@ required code for the runtime beforehand.
 
 ## Roadmap
 
-- Implement the Generator
-- Define standard HTTP Errors like JSON Encoding, Authn failure, Authz failure etc.
+- Implement the Generator (Parameter, RequestModel/ResponseModel Decoding + Encoding)
 - Create common middleware for Authn (oidc only allowed)
