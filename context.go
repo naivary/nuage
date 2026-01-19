@@ -11,7 +11,7 @@ type Context struct {
 	ctx context.Context
 }
 
-func newCtx() *Context {
+func NewCtx() *Context {
 	return &Context{
 		ctx: context.Background(),
 	}

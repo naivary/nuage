@@ -52,3 +52,9 @@ Reflection is a nice tool in Go allowing for powerful analysis of types but the
 operations are expensive and create large overheads. Therefore any reflection in
 the hot-path (e.g. requests) are outsourced to compile time by generating the
 required code for the runtime beforehand.
+
+## Roadmap
+
+- Implement the Generator
+- Define standard HTTP Errors like JSON Encoding, Authn failure, Authz failure etc.
+- Create common middleware for Authn (oidc only allowed)

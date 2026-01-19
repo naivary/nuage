@@ -13,7 +13,7 @@ type HandlerFuncErr[RequestModel, ResponseModel any] func(ctx *Context, r Reques
 
 func (hl HandlerFuncErr[RequestModel, ResponseModel]) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var req RequestModel
-	ctx := newCtx()
+	ctx := NewCtx()
 	res, err := hl(ctx, req)
 	if err != nil {
 		// handle error
