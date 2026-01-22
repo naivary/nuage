@@ -7,14 +7,11 @@ formatters:
   settings:
     gofmt:
       simplify: false
-      # Apply the rewrite rules to the source before reformatting.
-      # https://pkg.go.dev/cmd/gofmt
-      # Default: []
       rewrite-rules:
-        - pattern: 'interface{}'
-          replacement: 'any'
-        - pattern: 'a[b:len(a)]'
-          replacement: 'a[b:]'
+        - pattern: "interface{}"
+          replacement: "any"
+        - pattern: "a[b:len(a)]"
+          replacement: "a[b:]"
     gofumpt:
       module-path: github.com/naivary/nuage
       extra-rules: true
@@ -22,10 +19,6 @@ formatters:
       local-prefixes:
         - github.com/naivary/nuage
     golines:
-      max-len: 150
-      # Length of a tabulation.
-      # Default: 4
+      max-len: 80
       tab-len: 2
-      # Shorten single-line comments.
-      # Default: false
       shorten-comments: true

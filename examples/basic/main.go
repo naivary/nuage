@@ -18,5 +18,6 @@ func run() error {
 	if err != nil {
 		return err
 	}
+	_ = api
 	return nil
 }

@@ -19,7 +19,8 @@ var (
 // as JSON with the media type "application/problem+json".
 type HTTPError struct {
 	// Type is a URI reference that identifies the problem type.
-	// When dereferenced, it may provide human-readable documentation for the error.
+	// When dereferenced, it may provide human-readable documentation for the
+	// error.
 	// If empty, it defaults to "about:blank".
 	Type string `json:"type,omitempty"`
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"reflect"
 )
 
 var ErrParamStyleNotSupported = errors.New(`
@@ -16,8 +17,18 @@ Currently the following parameter styles are supported:
 	3. Header: simple
 	4. Cookie: form
 
-If you have a concrete use case that cannot be expressed with the supported styles, please open a GitHub issue and describe the problem you are trying to solve.
-`)
+If you have a concrete use case that cannot be expressed with the supported styles, please open a GitHub issue and describe the problem you are trying to solve`)
+
+var errParamTagNotFound = errors.New(
+	"parameter tag `query`, `path`, `cookie` or `header` not found",
+)
+
+const (
+	_tagKeyPathParam   = "path"
+	_tagKeyQueryParam  = "query"
+	_tagKeyCookieParam = "cookie"
+	_tagKeyHeaderParam = "header"
+)
 
 type paramTagOpts struct {
 	in           ParamIn
@@ -26,7 +37,72 @@ type paramTagOpts struct {
 	required     bool
 	explode      bool
 	isDeprecated bool
-	queryKeys    []string
+}
+
+func paramType(tag reflect.StructTag) (ParamIn, error) {
+	_, ok := tag.Lookup(_tagKeyPathParam)
+	if ok {
+		return ParamInPath, nil
+	}
+	_, ok = tag.Lookup(_tagKeyQueryParam)
+	if ok {
+		return ParamInQuery, nil
+	}
+	_, ok = tag.Lookup(_tagKeyHeaderParam)
+	if ok {
+		return ParamInHeader, nil
+	}
+	_, ok = tag.Lookup(_tagKeyCookieParam)
+	if ok {
+		return ParamInCookie, nil
+	}
+	return "", errParamTagNotFound
+}
+
+func isParamExploded(fieldType reflect.Type) bool {
+	switch fieldType.Kind() {
+	case reflect.Map, reflect.Slice, reflect.Array:
+		return true
+	default:
+		return false
+	}
+}
+
+func parseParamTagOpts(field reflect.StructField) (*paramTagOpts, error) {
+	paramIn, err := paramType(field.Tag)
+	if err != nil {
+		return nil, err
+	}
+	return &paramTagOpts{
+		in: paramIn,
+        explode: isParamExploded(field.Type),
+	}, nil
+}
+
+func newOpenAPIParamFor[T any]() ([]*Parameter, error) {
+	rtype := reflect.TypeFor[T]()
+	fields := reflect.VisibleFields(rtype)
+	for _, field := range fields {
+		if field.Anonymous {
+			continue
+		}
+		opts, err := parseParamTagOpts(field)
+		if err != nil {
+			return nil, err
+		}
+		var param *Parameter
+		var paramErr error
+
+		switch opts.in {
+		case ParamInPath:
+			param, paramErr = newPathParam(opts)
+		}
+		if paramErr != nil {
+			return nil, err
+		}
+
+	}
+	return nil, nil
 }
 
 func newPathParam(opts *paramTagOpts) (*Parameter, error) {
@@ -57,7 +133,10 @@ func newHeaderParam(opts *paramTagOpts) (*Parameter, error) {
 
 	canonicalName := http.CanonicalHeaderKey(opts.name)
 	if canonicalName != opts.name {
-		return nil, fmt.Errorf("header parameter: name is not canonical. Change it to: %s", canonicalName)
+		return nil, fmt.Errorf(
+			"header parameter: name is not canonical. Change it to: %s",
+			canonicalName,
+		)
 	}
 	return &Parameter{
 		ParamIn:    ParamInHeader,

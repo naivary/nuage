@@ -1,7 +1,8 @@
 package nuage
 
 const (
-	// ContentTypeJSON represents the standard JSON media type as defined in RFC 8259.
+	// ContentTypeJSON represents the standard JSON media type as defined in RFC
+	// 8259.
 	//
 	// This content type is used for typical JSON request and response bodies,
 	// most commonly with HTTP methods such as POST and PUT where the full

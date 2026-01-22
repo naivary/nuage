@@ -7,7 +7,19 @@ import (
 )
 
 const (
-	OpenAPIVersion    = "3.2.0"
+	// OpenAPIVersion is the OpenAPI Specification version implemented
+	// and supported by this framework.
+	//
+	// This value is used when generating OpenAPI documents to indicate
+	// the exact specification version the output conforms to.
+	OpenAPIVersion = "3.2.0"
+
+	// JSONSchemaDialect is the default JSON Schema dialect URI used by
+	// the framework when producing OpenAPI schemas.
+	//
+	// It identifies the JSON Schema specification that schema definitions
+	// are expected to follow, and is typically referenced from the
+	// OpenAPI document's `jsonSchemaDialect` field.
 	JSONSchemaDialect = "https://json-schema.org/draft/2020-12/json-schema-core.html"
 )
 
