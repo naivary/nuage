@@ -7,8 +7,8 @@ import (
 )
 
 func TestGenDecoder(t *testing.T) {
-    err := codegen.GenDecoder([]string{"./testdata"})
-    if err != nil {
-        t.Errorf("codegen: %v", err)
-    }
+	err := codegen.GenDecoder([]string{"./testdata"})
+	if err != nil {
+		t.Errorf("codegen: %v", err)
+	}
 }

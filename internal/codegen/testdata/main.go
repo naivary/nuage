@@ -1,7 +1,7 @@
 package main
 
 type PathParamRequest struct {
-    Str string `path:"str" json:"-"`
+	Str string `path:"str" json:"-"`
 
 	I   int   `path:"int"`
 	I8  int8  `path:"i8"`

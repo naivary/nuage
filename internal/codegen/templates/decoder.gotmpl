@@ -3,8 +3,11 @@ package {{ .PkgName }}
 
 import (
     "net/http"
+
 )
 
 func (r *{{.Struct.Name}}) Decode(r *http.Request) error {
+    {{ range $val := . }}
+    {{ end }}
     return nil
 }
