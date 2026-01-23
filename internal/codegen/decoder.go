@@ -4,8 +4,10 @@ import (
 	"errors"
 	"flag"
 	"go/ast"
+	"go/token"
 	"go/types"
 	"os"
+	"path"
 	"reflect"
 	"strings"
 	"text/template"
@@ -14,17 +16,27 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-type paramInfo struct {
-	GoType         string
-	UnderlyingType string
-	Name           string
-	In             openapi.ParamIn
+type requestModel struct {
+	PkgName string
+	Ident   string
+	Params  []*parameter
 }
 
-type requestModelInfo struct {
-	PkgName     string
-	StructIdent string
-	Params      []*paramInfo
+type parameter struct {
+	// Name of the parameter
+	Name string
+	// Location of the parameter
+	In openapi.ParamIn
+
+	// Custom or built-in go type
+	GoType         string
+	UnderlyingType string
+}
+
+type decoderData struct {
+	// All required imports (types etc.)
+	Imports      []string
+	RequestModel *requestModel
 }
 
 func GenDecoder(args []string) error {
@@ -46,8 +58,36 @@ func GenDecoder(args []string) error {
 	for _, pkg := range pkgs {
 		for _, file := range pkg.Syntax {
 			for _, decl := range file.Decls {
-				if err := genDecoder(pkg, file, decl); err != nil {
-					return err
+				genDecl, isGenDecl := decl.(*ast.GenDecl)
+				if !isGenDecl {
+					continue
+				}
+				if genDecl.Tok != token.TYPE {
+					continue
+				}
+				for _, spec := range genDecl.Specs {
+					typeSpec, isTypeSpec := spec.(*ast.TypeSpec)
+					if !isTypeSpec {
+						continue
+					}
+					data, err := genDecoder(pkg, typeSpec)
+					if err != nil {
+						return err
+					}
+					if data == nil {
+						continue
+					}
+
+					// render the actual code
+					tmpl, err := template.New("decoder.gotmpl").Funcs(template.FuncMap{
+						"BitSize": BitSize,
+					}).ParseGlob("templates/*.gotmpl")
+					if err != nil {
+						return err
+					}
+					if err := tmpl.Execute(os.Stdout, data); err != nil {
+						return err
+					}
 				}
 			}
 		}
@@ -55,68 +95,57 @@ func GenDecoder(args []string) error {
 	return nil
 }
 
-func genDecoder(pkg *packages.Package, file *ast.File, decl ast.Decl) error {
-	genDecl, isGenDecl := decl.(*ast.GenDecl)
-	if !isGenDecl {
-		return nil
+func genDecoder(pkg *packages.Package, typeSpec *ast.TypeSpec) (*decoderData, error) {
+	data := decoderData{
+		Imports: make([]string, 0),
 	}
-	requestModelInfos := make([]*requestModelInfo, 0, len(genDecl.Specs))
-	for _, spec := range genDecl.Specs {
-		typeSpec, isTypeSpec := spec.(*ast.TypeSpec)
-		if !isTypeSpec {
-			return nil
-		}
-		typ := pkg.TypesInfo.TypeOf(typeSpec.Type)
-		s, isStructType := typ.(*types.Struct)
-		if !isStructType {
-			return nil
-		}
-		structIdent := typeSpec.Name.Name
-		if !strings.HasSuffix(structIdent, "Request") {
-			return nil
-		}
-
-		paramInfos := make([]*paramInfo, 0, s.NumFields())
-		for i := range s.NumFields() {
-			tag := reflect.StructTag(s.Tag(i))
-			field := s.Field(i)
-			paramIn := openapi.ParamLocation(tag)
-			if paramIn == "" {
-				// field is not a parameter or located at a invalid location
-				continue
-			}
-			fieldInfo := &paramInfo{
-				In:   paramIn,
-				Name: field.Name(),
-			}
-			switch t := field.Type().(type) {
-			case *types.Named:
-				fieldInfo.GoType = t.String()
-				fieldInfo.UnderlyingType = t.Underlying().String()
-			default:
-				fieldInfo.GoType = t.String()
-				fieldInfo.UnderlyingType = t.String()
-			}
-			paramInfos = append(paramInfos, fieldInfo)
-		}
-
-		reqModelInfo := &requestModelInfo{
-			PkgName:     pkg.Name,
-			StructIdent: structIdent,
-			Params:      paramInfos,
-		}
-		requestModelInfos = append(requestModelInfos, reqModelInfo)
+	typ := pkg.TypesInfo.TypeOf(typeSpec.Type)
+	s, isStructType := typ.(*types.Struct)
+	if !isStructType {
+		return nil, nil
+	}
+	ident := typeSpec.Name.Name
+	if !strings.HasSuffix(ident, "Request") {
+		return nil, nil
 	}
 
-	tmpl, err := template.ParseGlob("templates/*.gotmpl")
-	if err != nil {
-		return err
-	}
-	for _, reqModelInfo := range requestModelInfos {
-		err = tmpl.Execute(os.Stdout, &reqModelInfo)
-		if err != nil {
-			return err
+	// found struct is a valid struct and will be considered for generation
+	params := make([]*parameter, 0, s.NumFields())
+	for i := range s.NumFields() {
+		tag := reflect.StructTag(s.Tag(i))
+		field := s.Field(i)
+		param := parameter{
+			In:   openapi.ParamLocation(tag),
+			Name: field.Name(),
 		}
+		if param.In == "" {
+			// field is not a parameter or is located at a invalid location
+			continue
+		}
+
+		// we need to identify if the data type used for the parameter is built-in or custom
+		switch t := field.Type().(type) {
+		case *types.Named:
+			param.GoType = path.Base(t.String())
+			param.UnderlyingType = t.Underlying().String()
+			data.Imports = append(data.Imports, importPath(t.String()))
+		default:
+			param.GoType = t.String()
+			param.UnderlyingType = t.String()
+		}
+		params = append(params, &param)
 	}
-	return nil
+	data.RequestModel = &requestModel{
+		PkgName: pkg.Name,
+		Ident:   ident,
+		Params:  params,
+	}
+	return &data, nil
+}
+
+func importPath(symbol string) string {
+	if i := strings.LastIndex(symbol, "."); i != -1 {
+		return symbol[:i]
+	}
+	return symbol
 }
