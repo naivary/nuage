@@ -1,4 +1,4 @@
-package nuage
+package openapi
 
 import (
 	"net/url"

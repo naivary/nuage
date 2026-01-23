@@ -5,74 +5,48 @@ import (
 	"flag"
 	"go/ast"
 	"go/types"
+	"os"
+	"reflect"
 	"strings"
+	"text/template"
 
+	"github.com/naivary/nuage/openapi"
 	"golang.org/x/tools/go/packages"
 )
 
-const _requestModelNameSuffix = "Request"
-
-type Parameter struct {
-	Name           string
+type paramInfo struct {
 	GoType         string
 	UnderlyingType string
+	Name           string
+	In             openapi.ParamIn
 }
 
-type RequestModel struct {
-	PkgName    string
-	StructName string
-	PathParams []Parameter
+type requestModelInfo struct {
+	PkgName     string
+	StructIdent string
+	Params      []*paramInfo
 }
 
 func GenDecoder(args []string) error {
-	flagSet := flag.NewFlagSet("gen-decoder", flag.ExitOnError)
-	if err := flagSet.Parse(args); err != nil {
+	fs := flag.NewFlagSet("decoders", flag.ExitOnError)
+	err := fs.Parse(args)
+	if err != nil {
 		return err
 	}
-
 	cfg := &packages.Config{
 		Mode: packages.LoadTypes | packages.LoadAllSyntax,
 	}
-	pkgs, err := packages.Load(cfg, flagSet.Args()...)
+	pkgs, err := packages.Load(cfg, fs.Args()...)
 	if err != nil {
 		return err
 	}
 	if exitCode := packages.PrintErrors(pkgs); exitCode > 0 {
-		return errors.New("genDecoder: error while loading packages")
+		return errors.New("GenDecoder: error while loading packages")
 	}
-	// Print the names of the source files
-	// for each package listed on the command line.
 	for _, pkg := range pkgs {
-		err := findRequestStructs(pkg)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func findRequestStructs(pkg *packages.Package) error {
-	for _, file := range pkg.Syntax {
-		for _, decl := range file.Decls {
-			genDecl, ok := decl.(*ast.GenDecl)
-			if !ok {
-				continue
-			}
-			for _, spec := range genDecl.Specs {
-				typeSpec, ok := spec.(*ast.TypeSpec)
-				if !ok {
-					continue
-				}
-				if !strings.HasSuffix(typeSpec.Name.Name, _requestModelNameSuffix) {
-					continue
-				}
-				typ := pkg.TypesInfo.TypeOf(typeSpec.Type)
-				s, isStruct := typ.(*types.Struct)
-				if !isStruct {
-					continue
-				}
-				err := genDecoderOf(pkg, typeSpec, s)
-				if err != nil {
+		for _, file := range pkg.Syntax {
+			for _, decl := range file.Decls {
+				if err := genDecoder(pkg, file, decl); err != nil {
 					return err
 				}
 			}
@@ -81,10 +55,68 @@ func findRequestStructs(pkg *packages.Package) error {
 	return nil
 }
 
-func genDecoderOf(
-	pkg *packages.Package,
-	typeSpec *ast.TypeSpec,
-	s *types.Struct,
-) error {
+func genDecoder(pkg *packages.Package, file *ast.File, decl ast.Decl) error {
+	genDecl, isGenDecl := decl.(*ast.GenDecl)
+	if !isGenDecl {
+		return nil
+	}
+	requestModelInfos := make([]*requestModelInfo, 0, len(genDecl.Specs))
+	for _, spec := range genDecl.Specs {
+		typeSpec, isTypeSpec := spec.(*ast.TypeSpec)
+		if !isTypeSpec {
+			return nil
+		}
+		typ := pkg.TypesInfo.TypeOf(typeSpec.Type)
+		s, isStructType := typ.(*types.Struct)
+		if !isStructType {
+			return nil
+		}
+		structIdent := typeSpec.Name.Name
+		if !strings.HasSuffix(structIdent, "Request") {
+			return nil
+		}
+
+		paramInfos := make([]*paramInfo, 0, s.NumFields())
+		for i := range s.NumFields() {
+			tag := reflect.StructTag(s.Tag(i))
+			field := s.Field(i)
+			paramIn := openapi.ParamLocation(tag)
+			if paramIn == "" {
+				// field is not a parameter or located at a invalid location
+				continue
+			}
+			fieldInfo := &paramInfo{
+				In:   paramIn,
+				Name: field.Name(),
+			}
+			switch t := field.Type().(type) {
+			case *types.Named:
+				fieldInfo.GoType = t.String()
+				fieldInfo.UnderlyingType = t.Underlying().String()
+			default:
+				fieldInfo.GoType = t.String()
+				fieldInfo.UnderlyingType = t.String()
+			}
+			paramInfos = append(paramInfos, fieldInfo)
+		}
+
+		reqModelInfo := &requestModelInfo{
+			PkgName:     pkg.Name,
+			StructIdent: structIdent,
+			Params:      paramInfos,
+		}
+		requestModelInfos = append(requestModelInfos, reqModelInfo)
+	}
+
+	tmpl, err := template.ParseGlob("templates/*.gotmpl")
+	if err != nil {
+		return err
+	}
+	for _, reqModelInfo := range requestModelInfos {
+		err = tmpl.Execute(os.Stdout, &reqModelInfo)
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }

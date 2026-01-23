@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/naivary/nuage/openapi"
 )
 
 var ErrParamStyleNotSupported = errors.New(`
@@ -19,23 +21,23 @@ Currently the following parameter styles are supported:
 If you have a concrete use case that cannot be expressed with the supported styles, please open a GitHub issue and describe the problem you are trying to solve`)
 
 type paramTagOpts struct {
-	in           ParamIn
+	in           openapi.ParamIn
 	name         string
-	style        ParamStyle
+	style        openapi.ParamStyle
 	required     bool
 	explode      bool
 	isDeprecated bool
 }
 
-func newPathParam(opts *paramTagOpts) (*Parameter, error) {
+func newPathParam(opts *paramTagOpts) (*openapi.Parameter, error) {
 	switch opts.style {
-	case ParamStyleSimple:
+	case openapi.ParamStyleSimple:
 	default:
 		return nil, ErrParamStyleNotSupported
 	}
 
-	return &Parameter{
-		ParamIn:    ParamInPath,
+	return &openapi.Parameter{
+		ParamIn:    openapi.ParamInPath,
 		Name:       opts.name,
 		Deprecated: opts.isDeprecated,
 		Style:      opts.style,
@@ -45,10 +47,10 @@ func newPathParam(opts *paramTagOpts) (*Parameter, error) {
 	}, nil
 }
 
-func newHeaderParam(opts *paramTagOpts) (*Parameter, error) {
+func newHeaderParam(opts *paramTagOpts) (*openapi.Parameter, error) {
 	// Header key must be canonical
 	switch opts.style {
-	case ParamStyleSimple:
+	case openapi.ParamStyleSimple:
 	default:
 		return nil, ErrParamStyleNotSupported
 	}
@@ -60,8 +62,8 @@ func newHeaderParam(opts *paramTagOpts) (*Parameter, error) {
 			canonicalName,
 		)
 	}
-	return &Parameter{
-		ParamIn:    ParamInHeader,
+	return &openapi.Parameter{
+		ParamIn:    openapi.ParamInHeader,
 		Name:       canonicalName,
 		Deprecated: opts.isDeprecated,
 		// Headers are always style simple
@@ -70,15 +72,15 @@ func newHeaderParam(opts *paramTagOpts) (*Parameter, error) {
 	}, nil
 }
 
-func newCookieParam(opts *paramTagOpts) (*Parameter, error) {
+func newCookieParam(opts *paramTagOpts) (*openapi.Parameter, error) {
 	switch opts.style {
-	case ParamStyleForm:
+	case openapi.ParamStyleForm:
 	default:
 		return nil, ErrParamStyleNotSupported
 	}
 
-	return &Parameter{
-		ParamIn:    ParamInCookie,
+	return &openapi.Parameter{
+		ParamIn:    openapi.ParamInCookie,
 		Name:       opts.name,
 		Deprecated: opts.isDeprecated,
 		Style:      opts.style,
@@ -86,18 +88,18 @@ func newCookieParam(opts *paramTagOpts) (*Parameter, error) {
 	}, nil
 }
 
-func newQueryParam(opts *paramTagOpts) (*Parameter, error) {
+func newQueryParam(opts *paramTagOpts) (*openapi.Parameter, error) {
 	switch opts.style {
-	case ParamStyleForm, ParamStyleDeepObject:
+	case openapi.ParamStyleForm, openapi.ParamStyleDeepObject:
 	default:
 		return nil, ErrParamStyleNotSupported
 	}
 
-	if opts.style == ParamStyleDeepObject {
+	if opts.style == openapi.ParamStyleDeepObject {
 		opts.explode = true
 	}
-	return &Parameter{
-		ParamIn:    ParamInQuery,
+	return &openapi.Parameter{
+		ParamIn:    openapi.ParamInQuery,
 		Name:       opts.name,
 		Deprecated: opts.isDeprecated,
 		Style:      opts.style,

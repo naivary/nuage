@@ -3,6 +3,8 @@ package nuage
 import (
 	"encoding/json"
 	"net/http"
+
+	"github.com/naivary/nuage/openapi"
 )
 
 type Decoder interface {
@@ -115,7 +117,7 @@ func (hl HandlerFuncErr[RequestModel, ResponseModel]) ServeHTTP(
 func Handle[RequestModel Decoder, ResponseModel any](
 	n *Nuage,
 	hl HandlerFuncErr[RequestModel, RequestModel],
-	op *Operation,
+	op *openapi.Operation,
 ) error {
 	return nil
 }

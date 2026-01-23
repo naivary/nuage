@@ -1,0 +1,2 @@
+// Package openapi
+package openapi

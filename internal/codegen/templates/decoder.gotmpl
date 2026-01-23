@@ -6,8 +6,25 @@ import (
 
 )
 
-func (r *{{.Struct.Name}}) Decode(r *http.Request) error {
-    {{ range $val := . }}
+func (r *{{.StructIdent}}) Decode(r *http.Request) error {
+    {{ range $val := .Params }}
+        {{ if eq $val.In "path" }}
+            {{$val.Name}} := r.PathValue("{{$val.Name}}")
+            {{- if eq $val.UnderlyingType "string" }}
+            if {{$val.Name}} == "" {
+                return errors.New("decode: path parameter undefined")
+            }
+            r.{{$val.Name}} = r.PathValue("{{$val.Name}}")
+            {{ end }}
+
+            {{- if eq $val.UnderlyingType "int" }}
+            {{$val.Name}}{{$val.GoType}}, err := strconv.ParseInt({{$val.Name}}, 10, 64)
+            if err != nil {
+                return err
+            }
+            r.{{$val.Name}} = {{$val.GoType}}({{$val.Name}}{{$val.GoType}})
+            {{ end }}
+        {{ end }}
     {{ end }}
     return nil
 }
