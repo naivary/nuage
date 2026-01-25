@@ -13,8 +13,14 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/naivary/nuage/internal/typesutil"
 	"github.com/naivary/nuage/openapi"
 	"golang.org/x/tools/go/packages"
+)
+
+var (
+	errBoolPathParam    = errors.New("boolean types are not supported as path parameters")
+	errComplexPathParam = errors.New("complex64 and complex128 types are not supported as path parameters")
 )
 
 type requestModel struct {
@@ -187,56 +193,40 @@ func isSupportedParamType(in openapi.ParamIn, typ types.Type) error {
 	if isPtr {
 		return isSupportedParamType(in, ptr.Elem())
 	}
-	alias, isAlias := typ.(*types.Alias)
-	if isAlias {
-		return isSupportedParamType(in, alias.Underlying())
+
+	// the following types are generally not suppotred by any parameter
+	switch t := typ.(type) {
+	case *types.Signature, *types.Chan:
+		return errors.New("not supported")
+	case *types.Basic:
+		kind := t.Kind()
+		if kind == types.Uintptr || kind == types.UnsafePointer {
+			return errors.New("uintptr and unsafe pointer are not supported as parameters of any kind")
+		}
 	}
+
 	switch in {
 	case openapi.ParamInPath:
 		switch t := typ.(type) {
-		case *types.Named:
-			return isSupportedParamType(in, t.Underlying())
-		case *types.Struct:
-			return errors.New("structs are not supported for path parameters")
 		case *types.Basic:
-			if t.Kind() == types.Bool {
-				return errors.New("booleans are not supported for path parameters")
+			kind := t.Kind()
+			if kind == types.Bool {
+				return errBoolPathParam
 			}
-		case *types.Map:
-			key, isBasic := t.Key().(*types.Basic)
-			if !isBasic {
-				return errors.New("maps for path parameter can only have primitive types as key")
+			if typesutil.IsComplex(kind) {
+				return errComplexPathParam
 			}
-			if key.Kind() != types.String {
-				return errors.New("maps for path parameter can only have string as a key")
-			}
-			val, isBasic := t.Elem().(*types.Basic)
-			if !isBasic {
-				return errors.New("maps for path parameter can only have primitive types as values")
-			}
-			if val.Kind() != types.String {
-				return errors.New("maps for path parameter can only have string as a value")
-			}
-		case *types.Slice:
-			return isSupportedParamType(in, t.Elem())
-		}
-	case openapi.ParamInHeader:
-		switch t := typ.(type) {
 		case *types.Named:
-			if t.String() != "time.Time" && t.String() != "time.Duration" {
-				return isSupportedParamType(in, t.Underlying())
-			}
-		case *types.Struct:
-			return errors.New("structs are not supported for header parameters")
-		}
-	case openapi.ParamInCookie:
-		named, isNamed := typ.(*types.Named)
-		if !isNamed {
-			return errors.New("cookie parameter can only be stored in http.Cookie")
-		}
-		if named.String() != "http.Cookie" {
-			return errors.New("cookie parameter can only be stored in http.Cookie")
+            return isSupportedParamType(in, t.Underlying())
+		case *types.Slice:
+		case *types.Array:
+		case *types.Map:
 		}
 	}
 	return nil
+}
+
+func isValidSlice(typ *types.Slice) error {
+
+    return nil
 }
