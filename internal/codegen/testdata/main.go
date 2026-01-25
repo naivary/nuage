@@ -20,15 +20,10 @@ type PathParamRequest struct {
 	U32 uint32 `path:"u32"`
 	U64 uint64 `path:"u64"`
 
-	F32 float32 `path:"f32"`
-	F64 float64 `path:"f64"`
-
 	Named    Int  `path:"named"`
 	PtrNamed *Int `path:"ptrNamed"`
-
-	M map[time.Time]string `path:"m"`
 }
 
 type HeaderParamRequest struct {
-	T time.Time `header:"t"`
+	T *time.Time `header:"t"`
 }
