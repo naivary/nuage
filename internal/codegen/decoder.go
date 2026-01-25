@@ -9,6 +9,7 @@ import (
 	"os"
 	"path"
 	"reflect"
+	"slices"
 	"strings"
 	"text/template"
 
@@ -31,12 +32,20 @@ type parameter struct {
 	// Custom or built-in go type
 	GoType         string
 	UnderlyingType string
+	IsPointer      bool
 }
 
 type decoderData struct {
 	// All required imports (types etc.)
 	Imports      []string
 	RequestModel *requestModel
+}
+
+func (d *decoderData) addImport(pkg string) {
+	if slices.Contains(d.Imports, pkg) {
+		return
+	}
+	d.Imports = append(d.Imports, pkg)
 }
 
 func GenDecoder(args []string) error {
@@ -123,12 +132,22 @@ func genDecoder(pkg *packages.Package, typeSpec *ast.TypeSpec) (*decoderData, er
 			continue
 		}
 
+		// TODO(naivary): This can be solved with recurision but rn
+		// its better in the flow of the code like this
+		fieldType := field.Type()
+		ptr, isPtr := fieldType.(*types.Pointer)
+		if isPtr {
+			param.IsPointer = true
+			fieldType = ptr.Elem()
+		}
 		// we need to identify if the data type used for the parameter is built-in or custom
-		switch t := field.Type().(type) {
+		// TODO: check that the type used is compatiable with the param category. For example
+		// path parameters canno tbe of type boolean in any way.
+		switch t := fieldType.(type) {
 		case *types.Named:
 			param.GoType = path.Base(t.String())
 			param.UnderlyingType = t.Underlying().String()
-			data.Imports = append(data.Imports, importPath(t.String()))
+			data.addImport(importPath(t.String()))
 		default:
 			param.GoType = t.String()
 			param.UnderlyingType = t.String()
@@ -148,4 +167,25 @@ func importPath(symbol string) string {
 		return symbol[:i]
 	}
 	return symbol
+}
+
+func isValidParamType(param openapi.ParamIn, underlyingType types.Type) error {
+    // TODO: Should structs be allowed for deep objects?
+	switch underlyingType.(type) {
+	case *types.Struct, *types.Chan, *types.Signature:
+		return errors.New("not seriliasable")
+	}
+	// TODO: disallow general types like func, chan, interface, (struct)
+	switch param {
+	case openapi.ParamInPath:
+		basic, isBasic := underlyingType.(*types.Basic)
+		if !isBasic {
+			return nil
+		}
+		if basic.Kind() == types.Bool {
+			// TODO: detailed error message for the user
+			return errors.New("path parameter cannot be of type boolean")
+		}
+	}
+	return nil
 }
