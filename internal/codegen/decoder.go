@@ -79,7 +79,18 @@ func GenDecoder(args []string) error {
 					if !isTypeSpec {
 						continue
 					}
-					data, err := genDecoder(pkg, typeSpec)
+					ident := typeSpec.Name.Name
+					if !strings.HasSuffix(ident, "Request") {
+						continue
+					}
+					typ := pkg.TypesInfo.TypeOf(typeSpec.Type)
+					s, isStruct := typ.(*types.Struct)
+					if !isStruct {
+						continue
+					}
+					// From now the decl is considered a valid request model
+					// and will be analysed for code generation
+					data, err := genDecoder(pkg, ident, s)
 					if err != nil {
 						return err
 					}
@@ -104,32 +115,26 @@ func GenDecoder(args []string) error {
 	return nil
 }
 
-func genDecoder(pkg *packages.Package, typeSpec *ast.TypeSpec) (*decoderData, error) {
+func genDecoder(pkg *packages.Package, ident string, s *types.Struct) (*decoderData, error) {
 	data := decoderData{
 		Imports: make([]string, 0),
 	}
-	typ := pkg.TypesInfo.TypeOf(typeSpec.Type)
-	s, isStructType := typ.(*types.Struct)
-	if !isStructType {
-		return nil, nil
-	}
-	ident := typeSpec.Name.Name
-	if !strings.HasSuffix(ident, "Request") {
-		return nil, nil
-	}
-
-	// found struct is a valid struct and will be considered for generation
 	params := make([]*parameter, 0, s.NumFields())
 	for i := range s.NumFields() {
 		tag := reflect.StructTag(s.Tag(i))
 		field := s.Field(i)
 		param := parameter{
-			In:   openapi.ParamLocation(tag),
 			Name: field.Name(),
+			In:   openapi.ParamLocation(tag),
 		}
 		if param.In == "" {
 			// field is not a parameter or is located at a invalid location
 			continue
+		}
+
+		isSupported := isSupportedParamType(param.In, field.Type())
+		if isSupported != nil {
+			return nil, isSupported
 		}
 
 		// TODO(naivary): This can be solved with recurision but rn
@@ -169,22 +174,68 @@ func importPath(symbol string) string {
 	return symbol
 }
 
-func isValidParamType(param openapi.ParamIn, underlyingType types.Type) error {
-    // TODO: Should structs be allowed for deep objects?
-	switch underlyingType.(type) {
-	case *types.Struct, *types.Chan, *types.Signature:
-		return errors.New("not seriliasable")
+// findParamType is trying to find the correct GoType and UnderlyingType
+// while checking if the types are compatible with the infered parameter
+// type. The following support matrix is validated:
+// path parameter: int[8,16,32,64], uint[8,16,32,64], float[32,64], string, []T and map[string]string
+// header parameter: int[8,16,32,64], uint[8,16,32,64], float[32,64], string, time.Time, time.Duration, []T
+// cookie parameter: *http.Cookie
+// query parameter: int[8,16,32,64], uint[8,16,32,64], float[32,64], string,
+// map[string]string, time.Time, time.Duration, []T, struct{...}
+func isSupportedParamType(in openapi.ParamIn, typ types.Type) error {
+	ptr, isPtr := typ.(*types.Pointer)
+	if isPtr {
+		return isSupportedParamType(in, ptr.Elem())
 	}
-	// TODO: disallow general types like func, chan, interface, (struct)
-	switch param {
+	alias, isAlias := typ.(*types.Alias)
+	if isAlias {
+		return isSupportedParamType(in, alias.Underlying())
+	}
+	switch in {
 	case openapi.ParamInPath:
-		basic, isBasic := underlyingType.(*types.Basic)
-		if !isBasic {
-			return nil
+		switch t := typ.(type) {
+		case *types.Named:
+			return isSupportedParamType(in, t.Underlying())
+		case *types.Struct:
+			return errors.New("structs are not supported for path parameters")
+		case *types.Basic:
+			if t.Kind() == types.Bool {
+				return errors.New("booleans are not supported for path parameters")
+			}
+		case *types.Map:
+			key, isBasic := t.Key().(*types.Basic)
+			if !isBasic {
+				return errors.New("maps for path parameter can only have primitive types as key")
+			}
+			if key.Kind() != types.String {
+				return errors.New("maps for path parameter can only have string as a key")
+			}
+			val, isBasic := t.Elem().(*types.Basic)
+			if !isBasic {
+				return errors.New("maps for path parameter can only have primitive types as values")
+			}
+			if val.Kind() != types.String {
+				return errors.New("maps for path parameter can only have string as a value")
+			}
+		case *types.Slice:
+			return isSupportedParamType(in, t.Elem())
 		}
-		if basic.Kind() == types.Bool {
-			// TODO: detailed error message for the user
-			return errors.New("path parameter cannot be of type boolean")
+	case openapi.ParamInHeader:
+		switch t := typ.(type) {
+		case *types.Named:
+			if t.String() != "time.Time" && t.String() != "time.Duration" {
+				return isSupportedParamType(in, t.Underlying())
+			}
+		case *types.Struct:
+			return errors.New("structs are not supported for header parameters")
+		}
+	case openapi.ParamInCookie:
+		named, isNamed := typ.(*types.Named)
+		if !isNamed {
+			return errors.New("cookie parameter can only be stored in http.Cookie")
+		}
+		if named.String() != "http.Cookie" {
+			return errors.New("cookie parameter can only be stored in http.Cookie")
 		}
 	}
 	return nil

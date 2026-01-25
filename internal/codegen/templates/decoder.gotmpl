@@ -26,34 +26,11 @@ func (r *{{.RequestModel.Ident}}) Decode(req *http.Request) error {
 
     // Only parse if value is non-empty
     if len(rawVal) != 0 {
-        {{- if eq $val.UnderlyingType "string" }}
-
-        {{- $expr := "rawVal" -}}
-        {{- if ne $val.GoType "string" -}}
-        {{- $expr = printf "%s(rawVal)" $val.GoType -}}
-        {{- end -}}
-        {{- if $val.IsPointer }}
-        r.{{ $val.Name }} = nuage.Ptr({{ $expr }})
-        {{- else }}
-        r.{{ $val.Name }} = {{ $expr }}
-        {{- end }}
-
-
-        {{- else if eq $val.UnderlyingType "int" "int8" "int16" "int32" "int64" }}
+        {{- if eq $val.UnderlyingType "int" "int8" "int16" "int32" "int64" }}
         val, err := strconv.ParseInt(rawVal, 10, {{ BitSize $val.UnderlyingType }})
         if err != nil {
             return err
         }
-
-        {{- $expr := "val" -}}
-        {{- if ne $val.GoType "int64" -}}
-        {{- $expr = printf "%s(rawVal)" $val.GoType -}}
-        {{- end -}}
-        {{- if $val.IsPointer }}
-        r.{{ $val.Name }} = nuage.Ptr({{ $expr }})
-        {{- else }}
-        r.{{ $val.Name }} = {{ $expr }}
-        {{- end }}
 
         {{- else if eq $val.UnderlyingType "uint" "uint8" "uint16" "uint32" "uint64" }}
         val, err := strconv.ParseUint(rawVal, 10, {{ BitSize $val.UnderlyingType }})
@@ -61,44 +38,28 @@ func (r *{{.RequestModel.Ident}}) Decode(req *http.Request) error {
             return err
         }
 
-        {{- $expr := "val" -}}
-        {{- if ne $val.GoType "uint64" -}}
-        {{- $expr = printf "%s(rawVal)" $val.GoType -}}
-        {{- end -}}
-        {{- if $val.IsPointer }}
-        r.{{ $val.Name }} = nuage.Ptr({{ $expr }})
-        {{- else }}
-        r.{{ $val.Name }} = {{ $expr }}
-        {{- end }}
-
-
         {{- else if eq $val.UnderlyingType "float32" "float64" }}
         val, err := strconv.ParseFloat(rawVal, {{ BitSize $val.UnderlyingType }})
         if err != nil {
             return err
         }
-        {{- $expr := "val" -}}
-        {{- if ne $val.GoType "float64" -}}
-        {{- $expr = printf "%s(rawVal)" $val.GoType -}}
-        {{- end -}}
-        {{- if $val.IsPointer }}
-        r.{{ $val.Name }} = nuage.Ptr({{ $expr }})
-        {{- else }}
-        r.{{ $val.Name }} = {{ $expr }}
-        {{- end }}
 
         {{- else if eq $val.UnderlyingType "bool" }}
+        val, err := strconv.ParseBool(rawVal)
+        if err != nil {
+            return err
+        }
+        {{- end }}
 
         {{- $expr := "val" -}}
-        {{- if ne $val.GoType "bool" -}}
-        {{- $expr = printf "%s(rawVal)" $val.GoType -}}
-        {{- end -}}
+        {{- if not (eq $val.GoType "string" "int64" "uint64" "float64" "bool") }}
+            {{- $expr = printf "%s(rawVal)" $val.GoType -}}
+        {{- end }}
+
         {{- if $val.IsPointer }}
         r.{{ $val.Name }} = nuage.Ptr({{ $expr }})
         {{- else }}
         r.{{ $val.Name }} = {{ $expr }}
-        {{- end }}
-
         {{- end }}
     }
 

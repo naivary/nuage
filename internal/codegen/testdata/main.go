@@ -1,5 +1,7 @@
 package main
 
+import "time"
+
 type Int int
 
 type PathParamRequest struct {
@@ -23,4 +25,10 @@ type PathParamRequest struct {
 
 	Named    Int  `path:"named"`
 	PtrNamed *Int `path:"ptrNamed"`
+
+	M map[time.Time]string `path:"m"`
+}
+
+type HeaderParamRequest struct {
+	T time.Time `header:"t"`
 }
