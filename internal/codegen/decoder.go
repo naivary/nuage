@@ -12,6 +12,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/naivary/nuage/internal/openapiutil"
 	"github.com/naivary/nuage/openapi"
 	"golang.org/x/tools/go/packages"
 )
@@ -143,7 +144,7 @@ func genDecoder(pkg *packages.Package, ident string, s *types.Struct) (*requestM
 		field := s.Field(i)
 		param := parameter{
 			FieldIdent: field.Name(),
-			In:         openapi.ParamLocation(tag),
+			In:         openapiutil.ParamLocation(tag),
 		}
 		if param.In == "" {
 			// field is not a parameter or at an invalid location
@@ -163,4 +164,11 @@ func genDecoder(pkg *packages.Package, ident string, s *types.Struct) (*requestM
 		r.Parameters = append(r.Parameters, &param)
 	}
 	return &r, nil
+}
+
+func resolveStructParamType(s *types.Struct) *parameter {
+	param := &parameter{}
+	for field := range s.Fields() {
+	}
+	return nil
 }

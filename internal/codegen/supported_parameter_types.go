@@ -48,10 +48,9 @@ func isSupportedPathParamType(typ types.Type) error {
 	case *types.Named:
 		return isSupportedPathParamType(t.Underlying())
 	case *types.Slice:
-		if typesutil.IsSlice(t.Elem(), true) {
-			return errors.New("path parameters cannot be nested slices")
+		if typesutil.IsBasic(t.Elem(), true) {
+			return errors.New("slices can only be of basic type")
 		}
-		return isSupportedPathParamType(t.Elem())
 	default:
 		return errors.New("type is not supported for path parameter")
 	}
@@ -130,10 +129,9 @@ func isSupportedQueryType(typ types.Type) error {
 		}
 		return isSupportedQueryType(t.Underlying())
 	case *types.Slice:
-		if typesutil.IsSlice(t.Elem(), true) {
-			return errors.New("query parameters cannot be nested slices")
+		if !typesutil.IsBasic(t.Elem(), true) {
+			return errors.New("slices can only be of basic type")
 		}
-		return isSupportedQueryType(t.Elem())
 	case *types.Map:
 		isKeyTypeBasic := typesutil.IsBasic(t.Key(), true)
 		isValTypeBasic := typesutil.IsBasic(t.Elem(), true)
@@ -150,12 +148,8 @@ func isSupportedQueryType(typ types.Type) error {
 		}
 	case *types.Struct:
 		for field := range t.Fields() {
-			if typesutil.IsStruct(field.Type(), true) {
-				return errors.New("query parameters cannot have nested structs")
-			}
-			err := isSupportedQueryType(field.Type())
-			if err != nil {
-				return err
+			if !typesutil.IsBasic(field.Type(), true) {
+				return errors.New("when using a struct as a query parameter only primitive types are allowed to use")
 			}
 		}
 	default:

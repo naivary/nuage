@@ -13,78 +13,51 @@ func IsFloat(kind types.BasicKind) bool {
 // IsBasic reports wheret `typ` is basic. If `deref` is true
 // it will dereference Alias, Pointers and Named types.
 func IsBasic(typ types.Type, deref bool) bool {
-	switch t := typ.(type) {
-	case *types.Pointer:
-		if !deref {
-			return false
-		}
-		return IsBasic(t.Elem(), deref)
-	case *types.Alias:
-		if !deref {
-			return false
-		}
-		return IsBasic(t.Underlying(), deref)
-	case *types.Named:
-		if !deref {
-			return false
-		}
-		return IsBasic(t.Underlying(), deref)
-	case *types.Basic:
-		return true
-	default:
-		return false
+	if deref {
+		typ = underlying(typ)
 	}
+	_, isBasic := typ.(*types.Basic)
+	return isBasic
 }
 
 func IsSlice(typ types.Type, deref bool) bool {
-	switch t := typ.(type) {
-	case *types.Pointer:
-		if !deref {
-			return false
-		}
-		return IsSlice(t.Elem(), deref)
-	case *types.Alias:
-		if !deref {
-			return false
-		}
-		return IsSlice(t.Underlying(), deref)
-	case *types.Named:
-		if !deref {
-			return false
-		}
-		return IsSlice(t.Underlying(), deref)
-	case *types.Slice:
-		return true
-	default:
-		return false
+	if deref {
+		typ = underlying(typ)
 	}
+	_, isSlice := typ.(*types.Slice)
+	return isSlice
 }
 
 func IsStruct(typ types.Type, deref bool) bool {
-	switch t := typ.(type) {
-	case *types.Pointer:
-		if !deref {
-			return false
-		}
-		return IsStruct(t.Elem(), deref)
-	case *types.Alias:
-		if !deref {
-			return false
-		}
-		return IsStruct(t.Underlying(), deref)
-	case *types.Named:
-		if !deref {
-			return false
-		}
-		return IsStruct(t.Underlying(), deref)
-	case *types.Struct:
-		return true
-	default:
-		return false
+	if deref {
+		typ = underlying(typ)
 	}
+	_, isStruct := typ.(*types.Struct)
+	return isStruct
+}
+
+func IsMap(typ types.Type, deref bool) bool {
+	if deref {
+		typ = underlying(typ)
+	}
+	_, isMap := typ.(*types.Map)
+	return isMap
 }
 
 func IsPointer(typ types.Type) bool {
 	_, isPtr := typ.(*types.Pointer)
 	return isPtr
+}
+
+func underlying(typ types.Type) types.Type {
+	switch t := typ.(type) {
+	case *types.Pointer:
+		return underlying(t.Elem())
+	case *types.Alias:
+		return underlying(t.Rhs())
+	case *types.Named:
+		return underlying(t.Underlying())
+	default:
+		return t
+	}
 }
