@@ -7,6 +7,13 @@ import (
 )
 
 const (
+	TagKeyPathParam   = "path"
+	TagKeyQueryParam  = "query"
+	TagKeyHeaderParam = "header"
+	TagKeyCookieParam = "cookie"
+)
+
+const (
 	// OpenAPIVersion is the OpenAPI Specification version implemented
 	// and supported by this framework.
 	//

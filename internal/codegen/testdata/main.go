@@ -2,28 +2,23 @@ package main
 
 import "time"
 
-type Int int
+type (
+	Named    string
+	PtrNamed *string
+)
 
-type PathParamRequest struct {
-	Str    string  `path:"str"`
-	PtrStr *string `path:"ptrstr"`
+type UserID = int64
 
-	I      int    `path:"int"`
-	I8     int8   `path:"i8"`
-	I16    int16  `path:"i16"`
-	I32    int32  `path:"i32"`
-	I64    int64  `path:"i64"`
-	PtrInt *int64 `path:"ptri64"`
-
-	U8  uint8  `path:"u8"`
-	U16 uint16 `path:"u16"`
-	U32 uint32 `path:"u32"`
-	U64 uint64 `path:"u64"`
-
-	Named    Int  `path:"named"`
-	PtrNamed *Int `path:"ptrNamed"`
+type QueryDeepObject struct {
+	F1 string `query:"f1"`
+	F2 int    `query:"f2"`
 }
 
-type HeaderParamRequest struct {
-	T *time.Time `header:"t"`
+type QueryParamRequest struct {
+	T             time.Time        `query:"t"`
+	A             UserID           `query:"a"`
+	N             Named            `query:"n"`
+	PtrN          PtrNamed         `query:"ptr_n"`
+	Deep          *QueryDeepObject `query:"deep"`
+	DeepAnonymous struct{}         `query:"deep_anon"`
 }

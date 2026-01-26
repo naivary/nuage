@@ -3,12 +3,12 @@ package codegen
 import (
 	"errors"
 	"flag"
+	"fmt"
 	"go/ast"
 	"go/token"
 	"go/types"
 	"os"
 	"reflect"
-	"slices"
 	"strings"
 	"text/template"
 
@@ -16,40 +16,53 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
-const (
-	_timeTypeName   = "time.Time"
-	_cookieTypeName = "http.Cookie"
-)
-
 type requestModel struct {
+	// Import statments defined by the request model
+	Imports []string
+
+	// Identifier
+	Ident string
+
+	// Package in which the request model was found
 	PkgName string
-	Ident   string
-	Params  []*parameter
+
+	// Parameters infered from the fields of the request model
+	Parameters []*parameter
 }
 
 type parameter struct {
-	// Name of the parameter
-	Name string
+	// Identifier defined by the user in the struct tag
+	Ident string
+
+	// Identifier of the field in the struct where the
+	// parameter is found.
+	FieldIdent string
+
 	// Location of the parameter
 	In openapi.ParamIn
 
-	// Custom or built-in go type
-	GoType         string
-	UnderlyingType string
-	IsPointer      bool
+	// GoType is always a built-in go type and always contains
+	// a non-empty value.
+	GoType typeInfo
+
+	// UnderlyingType is always empty for non named types (e.g. type Named T).
+	// For named types it contains informatino about the underlying type of the named
+	// type.
+	UnderlyingType typeInfo
 }
 
-type decoderData struct {
-	// All required imports (types etc.)
-	Imports      []string
-	RequestModel *requestModel
-}
+type typeInfo struct {
+	// Whether the type was a pointer
+	IsPointer bool
 
-func (d *decoderData) addImport(pkg string) {
-	if slices.Contains(d.Imports, pkg) {
-		return
-	}
-	d.Imports = append(d.Imports, pkg)
+	// Name of the type found. For a named type it is the
+	// correct package type name (e.g. time.Time). For built-in types it is
+	// the name of the Go type itself (e.g. int, string etc.)
+	Type string
+
+	// Fields contains the type information of all fields if the
+	// underlying type is a struct.
+	Fields []typeInfo
 }
 
 func GenDecoder(args []string) error {
@@ -92,8 +105,9 @@ func GenDecoder(args []string) error {
 					if !isStruct {
 						continue
 					}
+
 					// From now the decl is considered a valid request model
-					// and will be analysed for code generation
+					// and will be analysed for code generation.
 					data, err := genDecoder(pkg, ident, s)
 					if err != nil {
 						return err
@@ -103,9 +117,7 @@ func GenDecoder(args []string) error {
 					}
 
 					// render the actual code
-					tmpl, err := template.New("decoder.gotmpl").Funcs(template.FuncMap{
-						"BitSize": BitSize,
-					}).ParseGlob("templates/*.gotmpl")
+					tmpl, err := template.New("decoder.gotmpl").Funcs(FuncsMap).ParseGlob("templates/*.gotmpl")
 					if err != nil {
 						return err
 					}
@@ -119,38 +131,36 @@ func GenDecoder(args []string) error {
 	return nil
 }
 
-func genDecoder(pkg *packages.Package, ident string, s *types.Struct) (*decoderData, error) {
-	data := decoderData{
-		Imports: make([]string, 0),
+func genDecoder(pkg *packages.Package, ident string, s *types.Struct) (*requestModel, error) {
+	r := requestModel{
+		PkgName:    pkg.Name,
+		Ident:      ident,
+		Parameters: make([]*parameter, 0, s.NumFields()),
+		Imports:    make([]string, 0, 1),
 	}
-	params := make([]*parameter, 0, s.NumFields())
 	for i := range s.NumFields() {
 		tag := reflect.StructTag(s.Tag(i))
 		field := s.Field(i)
 		param := parameter{
-			Name: field.Name(),
-			In:   openapi.ParamLocation(tag),
+			FieldIdent: field.Name(),
+			In:         openapi.ParamLocation(tag),
 		}
 		if param.In == "" {
-			// field is not a parameter or is located at a invalid location
+			// field is not a parameter or at an invalid location
 			continue
 		}
-		if err := isSupportedParamType(param.In, field); err != nil {
-			return nil, err
+		val := tag.Get(string(param.In))
+		if len(val) == 0 {
+			return nil, fmt.Errorf("struct field tag is missing the name of the parameter: %s", field.Name())
 		}
-		params = append(params, &param)
-	}
-	data.RequestModel = &requestModel{
-		PkgName: pkg.Name,
-		Ident:   ident,
-		Params:  params,
-	}
-	return &data, nil
-}
+		param.Ident = strings.Split(val, ",")[0]
 
-func importPath(symbol string) string {
-	if i := strings.LastIndex(symbol, "."); i != -1 {
-		return symbol[:i]
+		typ := field.Type()
+		err := isSupportedParamType(param.In, typ)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", err, field.Name())
+		}
+		r.Parameters = append(r.Parameters, &param)
 	}
-	return symbol
+	return &r, nil
 }

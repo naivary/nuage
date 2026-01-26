@@ -2,176 +2,164 @@ package codegen
 
 import (
 	"errors"
-	"fmt"
 	"go/types"
 
 	"github.com/naivary/nuage/internal/typesutil"
 	"github.com/naivary/nuage/openapi"
 )
 
-func isSupportedParamType(in openapi.ParamIn, field *types.Var) error {
-	typ := field.Type()
-	ptr, isPtr := typ.(*types.Pointer)
-	if isPtr {
-		typ = ptr.Elem()
-	}
+const (
+	_timeTypeName   = "time.Time"
+	_cookieTypeName = "http.Cookie"
+)
 
-	// the following types are not serializable and thus not supported
-	// by any of the parameter types.
-	switch t := typ.(type) {
-	case *types.Signature, *types.Chan:
-		return fmt.Errorf("functions or channels are not supported as parameter types because they are not serializable: %s", field.Name())
-	case *types.Basic:
-		kind := t.Kind()
-		if kind == types.Uintptr || kind == types.UnsafePointer {
-			return errors.New("uintptr and unsafe pointer are not supported as parameters of any kind")
-		}
-	case *types.Array:
-		return errors.New("arrays are a valid type parameter in general but are hard to support for nuage. For this version it is not supported. Use slices instead")
-	}
-
+func isSupportedParamType(in openapi.ParamIn, typ types.Type) error {
 	switch in {
 	case openapi.ParamInPath:
-		return isSupportedPathParamType(field, field.Type(), false)
+		return isSupportedPathParamType(typ)
 	case openapi.ParamInHeader:
-		return isSupportedHeaderParamType(field, field.Type(), false)
+		return isSupportedHeaderParamType(typ)
 	case openapi.ParamInQuery:
-		return isSupportedQueryType(field, field.Type(), false)
+		return isSupportedQueryType(typ)
 	case openapi.ParamInCookie:
-		return isSupportedCookieType(field, field.Type())
+		return isSupportedCookieType(typ)
+	default:
+		return nil
 	}
-	return nil
 }
 
-func isSupportedPathParamType(field *types.Var, typ types.Type, isSlice bool) error {
+func isSupportedPathParamType(typ types.Type) error {
 	switch t := typ.(type) {
 	case *types.Alias:
-		return isSupportedPathParamType(field, t.Underlying(), false)
+		return isSupportedPathParamType(t.Underlying())
 	case *types.Pointer:
-		return isSupportedPathParamType(field, t.Elem(), false)
+		return isSupportedPathParamType(t.Elem())
 	case *types.Basic:
 		kind := t.Kind()
 		if kind == types.Bool {
-			return fmt.Errorf("path parameters cannot be of type boolean: %s", field.Name())
+			return errors.New("path parameters cannot be of type boolean")
 		}
 		if typesutil.IsComplex(kind) {
-			return fmt.Errorf("path parameters cannot be of type complex: %s", field.Name())
+			return errors.New("path parameters cannot be of type complex")
 		}
 		if typesutil.IsFloat(kind) {
-			return fmt.Errorf("path parameters cannot be of type float: %s", field.Name())
+			return errors.New("path parameters cannot be of type float")
 		}
 	case *types.Named:
-		return isSupportedPathParamType(field, t.Underlying(), false)
+		return isSupportedPathParamType(t.Underlying())
 	case *types.Slice:
-		if isSlice {
-			return fmt.Errorf("path parameters cannot be nested slices: %s", field.Name())
+		if typesutil.IsSlice(t.Elem(), true) {
+			return errors.New("path parameters cannot be nested slices")
 		}
-		return isSupportedPathParamType(field, t.Elem(), true)
+		return isSupportedPathParamType(t.Elem())
 	default:
-		return fmt.Errorf("type `%s` is not supported for path parameters", typ.String())
+		return errors.New("type is not supported for path parameter")
 	}
 	return nil
 }
 
-func isSupportedHeaderParamType(field *types.Var, typ types.Type, isSlice bool) error {
+func isSupportedHeaderParamType(typ types.Type) error {
 	switch t := typ.(type) {
 	case *types.Alias:
-		return isSupportedHeaderParamType(field, t.Underlying(), false)
+		return isSupportedHeaderParamType(t.Underlying())
 	case *types.Pointer:
-		return isSupportedHeaderParamType(field, t.Elem(), false)
+		return isSupportedHeaderParamType(t.Elem())
 	case *types.Basic:
 		kind := t.Kind()
 		if kind == types.Bool {
-			return fmt.Errorf("header parameters cannot be of type boolean: %s", field.Name())
+			return errors.New("header parameters cannot be of type boolean")
 		}
 		if typesutil.IsComplex(kind) {
-			return fmt.Errorf("header parameters cannot be of type complex: %s", field.Name())
+			return errors.New("header parameters cannot be of type complex")
 		}
 		if typesutil.IsFloat(kind) {
-			return fmt.Errorf("header parameters cannot be of type float: %s", field.Name())
+			return errors.New("header parameters cannot be of type float")
 		}
 	case *types.Named:
 		name := t.String()
 		if name == _timeTypeName {
 			return nil
 		}
-		return isSupportedHeaderParamType(field, t.Underlying(), false)
+		return isSupportedHeaderParamType(t.Underlying())
 	case *types.Slice:
-		if isSlice {
-			return fmt.Errorf("header parameters cannot be nested slices: %s", field.Name())
+		if typesutil.IsSlice(t.Elem(), true) {
+			return errors.New("header parameters cannot be nested slices")
 		}
-		return isSupportedHeaderParamType(field, t.Elem(), true)
+		return isSupportedHeaderParamType(t.Elem())
 	default:
-		return fmt.Errorf("type `%s` is not supported for header parameters", typ.String())
+		return errors.New("type is not supported for header parameter")
 	}
 	return nil
 }
 
-func isSupportedCookieType(field *types.Var, typ types.Type) error {
+func isSupportedCookieType(typ types.Type) error {
 	switch t := typ.(type) {
 	case *types.Alias:
-		return isSupportedCookieType(field, t.Underlying())
+		return isSupportedCookieType(t.Underlying())
 	case *types.Pointer:
-		return isSupportedCookieType(field, t.Elem())
+		return isSupportedCookieType(t.Elem())
 	case *types.Named:
 		name := t.String()
 		if name == _cookieTypeName {
 			return nil
 		}
 	default:
-		return fmt.Errorf("type `%s` is not supported for cookie parameters. Use http.Cookie", typ.String())
+		return errors.New("type is not supported for cookie parameter. Use http.Cookie")
 	}
 	return nil
 }
 
-func isSupportedQueryType(field *types.Var, typ types.Type, isSlice bool) error {
+func isSupportedQueryType(typ types.Type) error {
 	switch t := typ.(type) {
 	case *types.Alias:
-		return isSupportedQueryType(field, t.Underlying(), false)
+		return isSupportedQueryType(t.Underlying())
 	case *types.Pointer:
-		return isSupportedQueryType(field, t.Elem(), false)
+		return isSupportedQueryType(t.Elem())
 	case *types.Basic:
 		kind := t.Kind()
 		if typesutil.IsFloat(kind) {
-			return fmt.Errorf("query parameters cannot be of type float: %s", field.Name())
+			return errors.New("query parameters cannot be of type float")
 		}
 		if typesutil.IsComplex(kind) {
-			return fmt.Errorf("query parameters cannot be of type complex: %s", field.Name())
+			return errors.New("query parameters cannot be of type complex")
 		}
 	case *types.Named:
 		name := t.String()
 		if name == _timeTypeName {
 			return nil
 		}
-		return isSupportedQueryType(field, t.Underlying(), false)
+		return isSupportedQueryType(t.Underlying())
 	case *types.Slice:
-		if isSlice {
-			return fmt.Errorf("query parameters cannot be nested slices: %s", field.Name())
+		if typesutil.IsSlice(t.Elem(), true) {
+			return errors.New("query parameters cannot be nested slices")
 		}
-		return isSupportedQueryType(field, t.Elem(), true)
+		return isSupportedQueryType(t.Elem())
 	case *types.Map:
 		isKeyTypeBasic := typesutil.IsBasic(t.Key(), true)
 		isValTypeBasic := typesutil.IsBasic(t.Elem(), true)
 		if !isKeyTypeBasic || !isValTypeBasic {
-			return fmt.Errorf("map types for query parameters can only be of form map[string]string")
+			return errors.New("map types for query parameters can only be of type map[string]string")
 		}
 		key := t.Key().(*types.Basic)
 		if key.Kind() != types.String {
-			return fmt.Errorf("the map key type of a query parameters has to be string")
+			return errors.New("the map key type of a query parameters has to be string")
 		}
 		val := t.Elem().(*types.Basic)
 		if val.Kind() != types.String {
-			return fmt.Errorf("the map value type of a query parameters has to be string")
+			return errors.New("the map value type of a query parameters has to be string")
 		}
 	case *types.Struct:
 		for field := range t.Fields() {
-			err := isSupportedQueryType(field, field.Type(), false)
+			if typesutil.IsStruct(field.Type(), true) {
+				return errors.New("query parameters cannot have nested structs")
+			}
+			err := isSupportedQueryType(field.Type())
 			if err != nil {
 				return err
 			}
 		}
 	default:
-		return fmt.Errorf("type `%s` is not supported for query parameters", typ.String())
+		return errors.New("type is not supported for query parameter")
 	}
 	return nil
 }

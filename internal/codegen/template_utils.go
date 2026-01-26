@@ -1,6 +1,13 @@
 package codegen
 
-import "strconv"
+import (
+	"strconv"
+	"text/template"
+)
+
+var FuncsMap = template.FuncMap{
+	"BitSize": BitSize,
+}
 
 func BitSize(typ string) int {
 	switch typ {
