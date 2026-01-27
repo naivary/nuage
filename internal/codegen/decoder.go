@@ -18,13 +18,15 @@ import (
 )
 
 const (
-	KindMap    = "map"
-	KindSlice  = "slice"
-	KindField  = "field"
-	KindPtr    = "ptr"
-	KindStruct = "struct"
-	KindAlias  = "alias"
-	KindNamed  = "named"
+	kindPtr      = "ptr"
+	kindMap      = "map"
+	kindMapKey   = "map.key"
+	kindMapValue = "map.value"
+	kindSlice    = "slice"
+	kindStruct   = "struct"
+	kindField    = "field"
+	kindAlias    = "alias"
+	kindNamed    = "named"
 )
 
 type requestModel struct {
@@ -52,17 +54,24 @@ type parameter struct {
 	// Location of the parameter
 	In openapi.ParamIn
 
-	Type typeInfo
+	TypeInfo *typeInfo
 }
 
 type typeInfo struct {
-	Kind     string
-	Name     string
+	Kind string
+
+	// Ident is the identifier of the named type or if its of kind `field`
+	// the identifier of the field in the struct.
+	Ident string
+
+	// Package in which the type is defined. If the type is defined in the
+	// same package as the request model it will be empty.
+	Pkg      string
 	Children []*typeInfo
 }
 
 func GenDecoder(args []string) error {
-	fs := flag.NewFlagSet("decoders", flag.ExitOnError)
+	fs := flag.NewFlagSet("decoder", flag.ExitOnError)
 	err := fs.Parse(args)
 	if err != nil {
 		return err
@@ -117,7 +126,7 @@ func GenDecoder(args []string) error {
 					if err != nil {
 						return err
 					}
-					if err := tmpl.Execute(os.Stdout, data); err != nil {
+					if err := tmpl.ExecuteTemplate(os.Stdout, "decoder", data); err != nil {
 						return err
 					}
 				}
@@ -160,6 +169,8 @@ func genDecoder(pkg *packages.Package, ident string, s *types.Struct) (*requestM
 		if info == nil {
 			return nil, fmt.Errorf("type information can not be extracted: %s", field.Name())
 		}
+		param.TypeInfo = info
+		r.Imports = append(r.Imports, ResolveImports(pkg, info)...)
 		r.Parameters = append(r.Parameters, &param)
 	}
 	return &r, nil
@@ -169,63 +180,81 @@ func ResolveType(typ types.Type) *typeInfo {
 	switch t := typ.(type) {
 	case *types.Pointer:
 		return &typeInfo{
-			Kind: KindPtr,
+			Kind: kindPtr,
 			Children: []*typeInfo{
 				ResolveType(t.Elem()),
 			},
 		}
 	case *types.Alias:
 		return &typeInfo{
-			Kind: KindAlias,
-			Name: t.Obj().Name(),
+			Kind:  kindAlias,
+			Ident: t.Obj().Name(),
 			Children: []*typeInfo{
 				ResolveType(t.Underlying()),
 			},
 		}
 	case *types.Named:
 		return &typeInfo{
-			Kind: KindNamed,
-			Name: t.Obj().Name(),
+			Kind:  kindNamed,
+			Ident: t.Obj().Name(),
+			Pkg:   t.Obj().Pkg().Name(),
 			Children: []*typeInfo{
 				ResolveType(t.Underlying()),
 			},
 		}
 	case *types.Struct:
+		switch t.String() {
+		case _timeTypeName, _cookieTypeName:
+			return nil
+		}
 		fields := make([]*typeInfo, 0, t.NumFields())
 		for f := range t.Fields() {
 			fields = append(fields, &typeInfo{
-				Kind: KindField,
-				Name: f.Name(),
+				Kind:  kindField,
+				Ident: f.Name(),
 				Children: []*typeInfo{
 					ResolveType(f.Type()),
 				},
 			})
 		}
 		return &typeInfo{
-			Kind:     KindStruct,
+			Kind:     kindStruct,
 			Children: fields,
 		}
-
 	case *types.Map:
 		return &typeInfo{
-			Kind: KindMap,
+			Kind: kindMap,
 			Children: []*typeInfo{
-				{Kind: "key", Children: []*typeInfo{ResolveType(t.Key())}},
-				{Kind: "value", Children: []*typeInfo{ResolveType(t.Elem())}},
+				{Kind: kindMapKey, Children: []*typeInfo{ResolveType(t.Key())}},
+				{Kind: kindMapValue, Children: []*typeInfo{ResolveType(t.Elem())}},
 			},
 		}
 	case *types.Slice:
 		return &typeInfo{
-			Kind: KindSlice,
+			Kind: kindSlice,
 			Children: []*typeInfo{
 				ResolveType(t.Elem()),
 			},
 		}
 	case *types.Basic:
 		return &typeInfo{
-			Kind: t.Name(), // "int", "string", etc.
+			Kind: t.Name(),
 		}
 	default:
 		return nil
 	}
+}
+
+func ResolveImports(pkg *packages.Package, info *typeInfo) []string {
+	if info.Kind != kindNamed {
+		return nil
+	}
+	imports := make([]string, 0, 1)
+	if info.Pkg != pkg.Name {
+		imports = append(imports, info.Pkg)
+	}
+	for _, i := range info.Children {
+		imports = append(imports, ResolveImports(pkg, i)...)
+	}
+	return imports
 }

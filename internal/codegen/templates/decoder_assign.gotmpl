@@ -1,0 +1,8 @@
+{{ define "assign" }}
+    {{ $param := (index . "param") }}
+    {{ $info := (index . "info") }}
+
+    {{ if eq $info.Pkg "" }}
+    r.{{$param.FieldIdent}} =  {{$info.Kind}}(val)
+    {{ end }}
+{{ end }}

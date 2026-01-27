@@ -2,14 +2,17 @@ package codegen
 
 import (
 	"strconv"
+	"strings"
 	"text/template"
 )
 
 var FuncsMap = template.FuncMap{
-	"BitSize": BitSize,
+	"BitSize":    bitSize,
+	"Capitalize": capitalize,
+	"Dict":       dict,
 }
 
-func BitSize(typ string) int {
+func bitSize(typ string) int {
 	switch typ {
 	case "int8", "uint8":
 		return 8
@@ -22,4 +25,20 @@ func BitSize(typ string) int {
 	default:
 		return strconv.IntSize
 	}
+}
+
+func capitalize(s string) string {
+	if len(s) == 0 {
+		return s
+	}
+	first := strings.ToUpper(string(s[0]))
+	return first + s[1:]
+}
+
+func dict(pairs ...any) map[string]any {
+	d := make(map[string]any, len(pairs)/2)
+	for i := 0; i < len(pairs); i += 2 {
+		d[pairs[i].(string)] = pairs[i+1]
+	}
+	return d
 }

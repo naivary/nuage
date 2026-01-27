@@ -1,0 +1,10 @@
+{{ define "path_parameter" }}
+    {{.Ident}} := req.PathValue("{{.Ident}}")
+    if len({{.Ident}}) != 0 {
+    {{ if eq .TypeInfo.Kind "ptr" }}
+        {{ template "path_parameter" .Children }}
+    {{ else if eq .TypeInfo.Kind "int" "int8" "int16" "int32" "int64" }}
+        {{ template "int_parser" (Dict "info" .TypeInfo "var" .Ident ) }}
+    {{ end }}
+    }
+{{ end }}
