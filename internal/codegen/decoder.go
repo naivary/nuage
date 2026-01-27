@@ -17,6 +17,16 @@ import (
 	"golang.org/x/tools/go/packages"
 )
 
+const (
+	KindMap    = "map"
+	KindSlice  = "slice"
+	KindField  = "field"
+	KindPtr    = "ptr"
+	KindStruct = "struct"
+	KindAlias  = "alias"
+	KindNamed  = "named"
+)
+
 type requestModel struct {
 	// Import statments defined by the request model
 	Imports []string
@@ -42,28 +52,13 @@ type parameter struct {
 	// Location of the parameter
 	In openapi.ParamIn
 
-	// GoType is always a built-in go type and always contains
-	// a non-empty value.
-	GoType typeInfo
-
-	// UnderlyingType is always empty for non named types (e.g. type Named T).
-	// For named types it contains informatino about the underlying type of the named
-	// type.
-	UnderlyingType typeInfo
+	Type typeInfo
 }
 
 type typeInfo struct {
-	// Whether the type was a pointer
-	IsPointer bool
-
-	// Name of the type found. For a named type it is the
-	// correct package type name (e.g. time.Time). For built-in types it is
-	// the name of the Go type itself (e.g. int, string etc.)
-	Type string
-
-	// Fields contains the type information of all fields if the
-	// underlying type is a struct.
-	Fields []typeInfo
+	Kind     string
+	Name     string
+	Children []*typeInfo
 }
 
 func GenDecoder(args []string) error {
@@ -161,14 +156,76 @@ func genDecoder(pkg *packages.Package, ident string, s *types.Struct) (*requestM
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", err, field.Name())
 		}
+		info := ResolveType(typ)
+		if info == nil {
+			return nil, fmt.Errorf("type information can not be extracted: %s", field.Name())
+		}
 		r.Parameters = append(r.Parameters, &param)
 	}
 	return &r, nil
 }
 
-func resolveStructParamType(s *types.Struct) *parameter {
-	param := &parameter{}
-	for field := range s.Fields() {
+func ResolveType(typ types.Type) *typeInfo {
+	switch t := typ.(type) {
+	case *types.Pointer:
+		return &typeInfo{
+			Kind: KindPtr,
+			Children: []*typeInfo{
+				ResolveType(t.Elem()),
+			},
+		}
+	case *types.Alias:
+		return &typeInfo{
+			Kind: KindAlias,
+			Name: t.Obj().Name(),
+			Children: []*typeInfo{
+				ResolveType(t.Underlying()),
+			},
+		}
+	case *types.Named:
+		return &typeInfo{
+			Kind: KindNamed,
+			Name: t.Obj().Name(),
+			Children: []*typeInfo{
+				ResolveType(t.Underlying()),
+			},
+		}
+	case *types.Struct:
+		fields := make([]*typeInfo, 0, t.NumFields())
+		for f := range t.Fields() {
+			fields = append(fields, &typeInfo{
+				Kind: KindField,
+				Name: f.Name(),
+				Children: []*typeInfo{
+					ResolveType(f.Type()),
+				},
+			})
+		}
+		return &typeInfo{
+			Kind:     KindStruct,
+			Children: fields,
+		}
+
+	case *types.Map:
+		return &typeInfo{
+			Kind: KindMap,
+			Children: []*typeInfo{
+				{Kind: "key", Children: []*typeInfo{ResolveType(t.Key())}},
+				{Kind: "value", Children: []*typeInfo{ResolveType(t.Elem())}},
+			},
+		}
+	case *types.Slice:
+		return &typeInfo{
+			Kind: KindSlice,
+			Children: []*typeInfo{
+				ResolveType(t.Elem()),
+			},
+		}
+	case *types.Basic:
+		return &typeInfo{
+			Kind: t.Name(), // "int", "string", etc.
+		}
+	default:
+		return nil
 	}
-	return nil
 }
