@@ -1,10 +1,28 @@
 {{ define "path_parameter" }}
-    {{.Ident}} := req.PathValue("{{.Ident}}")
-    if len({{.Ident}}) != 0 {
-    {{ if eq .TypeInfo.Kind "ptr" }}
-        {{ template "path_parameter" .Children }}
-    {{ else if eq .TypeInfo.Kind "int" "int8" "int16" "int32" "int64" }}
-        {{ template "int_parser" (Dict "info" .TypeInfo "var" .Ident ) }}
-    {{ end }}
+    {{ $param := (index . "param") }}
+    {{ $info := (index . "info") }}
+    {{ $pkg := (index . "pkg") }}
+
+    {{$param.Ident}} := req.PathValue("{{$param.Ident}}")
+    if len({{$param.Ident}}) != 0 {
+    {{ template "path_parameter_types" (Dict "param" $param "info" $info) }}
+    {{ template "assign" (Dict "param" $param "info" $info "pkg" $pkg) }}
     }
+{{ end }}
+
+{{ define "path_parameter_types" }}
+
+{{- $param := (index . "param") -}}
+{{- $info := (index . "info") -}}
+
+{{- if eq $info.Kind "ptr" -}}
+    {{- range $child := $info.Children }}
+        {{ template "path_parameter_types" (Dict "param" $param "info" $child) }}
+    {{ end }}
+{{- else if eq $info.Kind "named" -}}
+    {{- template "path_parameter_types" (Dict "param" $param "info" (index $info.Children 0)) -}}
+{{- else if eq $info.Kind "int" "int8" "int16" "int32" "int64" -}}
+    {{- template "int_parser" (Dict "info" $info "var" $param.Ident ) -}}
+{{- end -}}
+
 {{ end }}
