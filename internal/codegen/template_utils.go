@@ -12,6 +12,8 @@ var FuncsMap = template.FuncMap{
 	"Capitalize": capitalize,
 	"Dict":       dict,
 	"IsString":   isString,
+	"IsBasic":    isBasic,
+	"ElemType":   elemType,
 }
 
 func bitSize(typ string) int {
@@ -56,4 +58,28 @@ func isString(info *typeInfo) bool {
 	default:
 		return false
 	}
+}
+
+func isBasic(info *typeInfo) bool {
+	switch info.Kind {
+	case kindPtr, kindMap, kindMapKey, kindMapValue, kindSlice, kindStruct, kindField, kindAlias, kindNamed:
+		return false
+	default:
+		return true
+	}
+}
+
+func elemType(info *typeInfo) string {
+	t := ""
+	if info.Kind == kindPtr {
+		t += "*"
+		info = info.Children[0]
+	}
+	if info.Kind == kindNamed {
+		t += info.Ident
+	}
+    if isBasic(info) {
+        t += info.Kind
+    }
+	return t
 }

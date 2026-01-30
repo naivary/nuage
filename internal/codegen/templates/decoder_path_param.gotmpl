@@ -1,5 +1,4 @@
-{{ define "path_parameter" }}
-    {{- $param := (index . "param") -}}
+{{ define "path_parameter" }} {{- $param := (index . "param") -}}
     {{- $info := (index . "info") -}}
     {{- $pkg := (index . "pkg") }}
 
@@ -15,17 +14,28 @@
 {{- $pkg := (index . "pkg") -}}
 
 {{- if eq $info.Kind "ptr" -}}
-    {{- range $child := $info.Children -}}
-        {{ template "path_parameter_types" (Dict "param" $param "info" $child "pkg" $pkg) }}
-    {{- end -}}
-{{- else if eq $info.Kind "named" -}}
-    {{- template "path_parameter_types" (Dict "param" $param "info" (index $info.Children 0) "pkg" $pkg) -}}
+    {{- $child := (index $info.Children 0) -}}
+    {{- template "path_parameter_types" (Dict "param" $param "info" $child "pkg" $pkg) -}}
+{{- else if eq $info.Kind "string" -}}
+    r.{{$param.FieldIdent}} = {{ template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" $param.Ident) }}
 {{- else if eq $info.Kind "int" "int8" "int16" "int32" "int64" -}}
-    {{- template "int_parser" (Dict "param" $param "info" $info "pkg" $pkg "var" $param.Ident "assignTo" (print "r." $param.FieldIdent)) -}}
-{{- else if eq $info.Kind "string" }}
-    r.{{$param.FieldIdent}} = {{- template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" $param.FieldIdent) -}}
-{{- else if eq $info.Kind "slice" }}
-    elems := strings.Split({{$param.Ident}})
-    {{- template "path_parameter_types" -}}
+    {{ $var := "val" }}
+    {{ template "parse" (Dict "info" $info "value" $param.Ident "var" $var) -}}
+    r.{{$param.FieldIdent}} = {{ template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" $var) }}
+{{- else if eq $info.Kind "named" -}}
+    {{- $child := (index $info.Children 0) -}}
+    {{- template "path_parameter_types" (Dict "param" $param "info" $child "pkg" $pkg) -}}
+{{- else if eq $info.Kind "slice" -}}
+    {{ $elem := (index $info.Children 0) }}
+    {{ if eq $elem.Kind "string"}}
+    r.{{$param.FieldIdent}} = strings.Split({{$param.Ident}}, ",")
+    {{- else -}}
+    params := strings.Split({{$param.Ident}}, ",")
+    values := make([]{{ElemType $elem}}, 0, len(params))
+    for _, param := range params {
+        {{ template "parse" (Dict "info" $elem "value" "param" "var" "val") -}}
+        values = append(values, {{ template "rhs" (Dict "info" $elem "pkg" $pkg "var" "val") -}})
+    }
+    {{ end }}
 {{- end -}}
 {{ end }}

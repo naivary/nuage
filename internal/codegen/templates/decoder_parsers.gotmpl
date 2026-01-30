@@ -1,14 +1,25 @@
-{{ define "int_parser" }}
+{{ define "parse" }}
     {{- $info := index . "info" -}}
-    {{- $param := index . "param" -}}
-    {{- $pkg := index . "pkg" -}}
 
+    {{- $value := index . "value" -}}
     {{- $var := index . "var" -}}
-    {{- $assignTo := index . "assignTo" }}
 
-    val, err := strconv.ParseInt({{$var}}, 10, {{ BitSize $info.Kind }})
+    {{- if or (eq $info.Kind "named") (eq $info.Kind "ptr") -}}
+        {{ $child := (index $info.Children 0) }}
+        {{ template "parse" (Dict "info" $child "value" $value "var" $var) }}
+    {{- else if eq $info.Kind "int" "int8" "int16" "int32" "int64" -}}
+        {{ template "parse_int" (Dict "info" $info "value" $value "var" $var) }}
+    {{- end -}}
+{{ end }}
+
+{{ define "parse_int" }}
+    {{- $info := index . "info" -}}
+
+    {{- $value := index . "value" -}}
+    {{- $var := index . "var" -}}
+
+    {{$var}}, err := strconv.ParseInt({{$value}}, 10, {{ BitSize $info.Kind }})
     if err != nil {
         return err
     }
-    {{ $assignTo }} = {{ template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" "val") -}}
 {{ end }}

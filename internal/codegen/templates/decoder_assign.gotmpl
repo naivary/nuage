@@ -22,7 +22,11 @@
     {{- end -}}
 
     {{- if eq $info.Pkg "" -}}
+        {{- if IsBasic $info -}}
         {{ $info.Kind }}({{ $arg }})
+        {{- else -}}
+        {{ $arg }}
+        {{- end -}}
     {{- else if eq $info.Kind "named" -}}
         {{- if eq $info.Pkg $pkg -}}
             {{ $info.Ident }}({{ $arg }})
