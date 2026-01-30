@@ -21,6 +21,11 @@
 {{- else if eq $info.Kind "named" -}}
     {{- template "path_parameter_types" (Dict "param" $param "info" (index $info.Children 0) "pkg" $pkg) -}}
 {{- else if eq $info.Kind "int" "int8" "int16" "int32" "int64" -}}
-    {{- template "int_parser" (Dict "param" $param "info" $info "pkg" $pkg "var" $param.Ident "assignTo" $param.FieldIdent) -}}
+    {{- template "int_parser" (Dict "param" $param "info" $info "pkg" $pkg "var" $param.Ident "assignTo" (print "r." $param.FieldIdent)) -}}
+{{- else if eq $info.Kind "string" }}
+    r.{{$param.FieldIdent}} = {{- template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" $param.FieldIdent) -}}
+{{- else if eq $info.Kind "slice" }}
+    elems := strings.Split({{$param.Ident}})
+    {{- template "path_parameter_types" -}}
 {{- end -}}
 {{ end }}
