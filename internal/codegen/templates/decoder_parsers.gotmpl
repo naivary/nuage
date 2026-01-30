@@ -1,5 +1,5 @@
 {{ define "int_parser" }}
-    {{- $varIdent := index . "var" }}
+    {{- $varIdent := index . "var" -}}
     {{- $info := index . "info" }}
 
     val, err := strconv.ParseInt({{$varIdent}}, 10, {{ BitSize $info.Kind }})

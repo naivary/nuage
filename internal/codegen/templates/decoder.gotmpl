@@ -17,13 +17,13 @@ var _ nuage.Decoder = (*{{.Ident}})(nil)
 
 func (r *{{.Ident}}) Decode(req *http.Request) error {
     {{- range $param := .Parameters -}}
-    {{- if eq $param.In "path" -}}
-        {{ template "path_parameter" (Dict "param" $param "info" $param.TypeInfo "pkg" $pkg) }}
-    {{- else if eq $param.In "header" -}}
-    {{- else if eq $param.In "query" -}}
-    {{- else if eq $param.In "cookie" -}}
-    {{- end -}}
-    {{- end -}}
+        {{- if eq $param.In "path" -}}
+            {{- template "path_parameter" (Dict "param" $param "info" $param.TypeInfo "pkg" $pkg) -}}
+        {{- else if eq $param.In "header" -}}
+        {{- else if eq $param.In "query" -}}
+        {{- else if eq $param.In "cookie" -}}
+        {{- end -}}
+    {{- end }}
     return nil
 }
 
