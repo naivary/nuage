@@ -13,4 +13,5 @@ type PathParamRequest struct {
 	PtrNamed *PtrNamed `path:"ptr_named"`
 	Str      string    `path:"str"`
 	StrNamed String    `path:"str_named"`
+	StrSlice []string  `path:"str_slice"`
 }

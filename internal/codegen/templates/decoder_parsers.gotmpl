@@ -1,9 +1,14 @@
 {{ define "int_parser" }}
-    {{- $varIdent := index . "var" -}}
-    {{- $info := index . "info" }}
+    {{- $info := index . "info" -}}
+    {{- $param := index . "param" -}}
+    {{- $pkg := index . "pkg" -}}
 
-    val, err := strconv.ParseInt({{$varIdent}}, 10, {{ BitSize $info.Kind }})
+    {{- $var := index . "var" -}}
+    {{- $assignTo := index . "assignTo" -}}
+
+    val, err := strconv.ParseInt({{$var}}, 10, {{ BitSize $info.Kind }})
     if err != nil {
         return err
     }
+    {{ $assignTo }} = {{- template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" "val") -}}
 {{ end }}

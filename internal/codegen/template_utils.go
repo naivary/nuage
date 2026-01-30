@@ -1,6 +1,7 @@
 package codegen
 
 import (
+	"slices"
 	"strconv"
 	"strings"
 	"text/template"
@@ -10,6 +11,7 @@ var FuncsMap = template.FuncMap{
 	"BitSize":    bitSize,
 	"Capitalize": capitalize,
 	"Dict":       dict,
+	"IsString":   isString,
 }
 
 func bitSize(typ string) int {
@@ -41,4 +43,17 @@ func dict(pairs ...any) map[string]any {
 		d[pairs[i].(string)] = pairs[i+1]
 	}
 	return d
+}
+
+func isString(info *typeInfo) bool {
+	switch info.Kind {
+	case "string":
+		return true
+	case kindPtr:
+		return slices.ContainsFunc(info.Children, isString)
+	case kindNamed:
+		return slices.ContainsFunc(info.Children, isString)
+	default:
+		return false
+	}
 }

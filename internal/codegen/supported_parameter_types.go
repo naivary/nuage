@@ -48,7 +48,7 @@ func isSupportedPathParamType(typ types.Type) error {
 	case *types.Named:
 		return isSupportedPathParamType(t.Underlying())
 	case *types.Slice:
-		if typesutil.IsBasic(t.Elem(), true) {
+		if !typesutil.IsBasic(t.Elem(), true) {
 			return errors.New("slices can only be of basic type")
 		}
 	default:

@@ -1,25 +1,26 @@
-{{ define "assign" }}
-    {{- $param := (index . "param") -}}
+{{ define "rhs" }}
     {{- $info := (index . "info") -}}
     {{- $pkg := (index . "pkg") -}}
+    {{- $var := (index . "var") -}}
 
-    {{ if eq $info.Kind "ptr" }}
-    r.{{$param.FieldIdent}} = nuage.Ptr({{ template "assign_type" (Dict "param" $param "info" (index $info.Children 0) "pkg" $pkg) }})
-    {{ else }}
-    r.{{$param.FieldIdent}} = {{ template "assign_type" (Dict "param" $param "info" $info "pkg" $pkg) }}
-    {{ end }}
+    {{- if eq $info.Kind "ptr" -}}
+    nuage.Ptr({{- template "rhs_type" (Dict "info" (index $info.Children 0) "pkg" $pkg "var" $var) -}})
+    {{- else -}}
+    {{- template "rhs_type" (Dict "info" $info "pkg" $pkg "var" $var) -}}
+    {{- end -}}
 {{ end }}
 
 
-{{- define "assign_type" -}}
-    {{- $param := index . "param" -}}
+{{- define "rhs_type" -}}
     {{- $info  := index . "info" -}}
     {{- $pkg   := index . "pkg" -}}
+    {{- $var   := index . "var" -}}
 
-    {{- $arg := "val" -}}
+    {{- $arg := $var -}}
     {{- if and (gt (len $info.Children) 0) (eq (index $info.Children 0).Kind "ptr") -}}
-        {{- $arg = "&val" -}}
+        {{- $arg = print "&" $arg -}}
     {{- end -}}
+
     {{- if eq $info.Pkg "" -}}
         {{ $info.Kind }}({{ $arg }})
     {{- else if eq $info.Kind "named" -}}
