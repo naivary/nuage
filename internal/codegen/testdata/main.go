@@ -13,6 +13,7 @@ type PathParamRequest struct {
 	Int                  int         `path:"int"`
 	Int32                int32       `path:"int_32"`
 	Int64                int64       `path:"int_64"`
+	PtrInt64             *int64      `path:"ptr_int_64"`
 	NamedStr             String      `path:"named_str"`
 	NamedInt32           Int32       `path:"named_int32"`
 	PtrString            PtrString   `path:"ptr_string"`
