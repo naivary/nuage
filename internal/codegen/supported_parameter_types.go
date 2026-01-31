@@ -129,8 +129,12 @@ func isSupportedQueryType(typ types.Type) error {
 		}
 		return isSupportedQueryType(t.Underlying())
 	case *types.Slice:
+		elem := t.Elem()
 		if !typesutil.IsBasic(t.Elem(), true) {
 			return errors.New("slices can only be of basic type")
+		}
+		if typesutil.IsBasicKind(elem, true, types.Float32, types.Float64, types.Bool) {
+			return errors.New("query slices cannot be of type float32, float64 or bool")
 		}
 	case *types.Map:
 		isKeyTypeBasic := typesutil.IsBasic(t.Key(), true)
@@ -138,13 +142,8 @@ func isSupportedQueryType(typ types.Type) error {
 		if !isKeyTypeBasic || !isValTypeBasic {
 			return errors.New("map types for query parameters can only be of type map[string]string")
 		}
-		key := t.Key().(*types.Basic)
-		if key.Kind() != types.String {
-			return errors.New("the map key type of a query parameters has to be string")
-		}
-		val := t.Elem().(*types.Basic)
-		if val.Kind() != types.String {
-			return errors.New("the map value type of a query parameters has to be string")
+		if !typesutil.IsBasicKind(t.Key(), true, types.String) || !typesutil.IsBasicKind(t.Elem(), true, types.String) {
+			return errors.New("maps can only have ~string types as key and value")
 		}
 	case *types.Struct:
 		for field := range t.Fields() {

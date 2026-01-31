@@ -1,0 +1,72 @@
+{{ define "query_parameter" }}
+    {{- $param := (index . "param") -}}
+    {{- $info := (index . "info") -}}
+    {{- $pkg := (index . "pkg") }}
+
+    {{ template "query_parameter_types" (Dict "param" $param "info" $info "pkg" $pkg) }}
+{{ end }}
+
+{{ define "query_parameter_types" }}
+{{- $param := (index . "param") -}}
+{{- $info := (index . "info") -}}
+{{- $pkg := (index . "pkg") -}}
+
+{{- if eq $info.Kind "ptr" -}}
+    {{- $child := (index $info.Children 0) -}}
+    {{- template "query_parameter_types" (Dict "param" $param "info" $child "pkg" $pkg) -}}
+{{- else if eq $info.Kind "named" -}}
+    {{- $child := (index $info.Children 0) -}}
+    {{- template "query_parameter_types" (Dict "param" $param "info" $child "pkg" $pkg) -}}
+{{- else if eq $info.Kind "string" -}}
+    if q.Has("{{$param.Ident}}") {
+        {{$param.Ident}} := q.Get("{{$param.Ident}}")
+        r.{{$param.FieldIdent}} = {{ template "rhs" (Dict "info" $info "pkg" $pkg "var" "val") }}
+    }
+{{- else if eq $info.Kind "bool" -}}
+    if q.Has("{{$param.Ident}}") {
+        {{$param.Ident}} := q.Get("{{$param.Ident}}")
+        {{ template "parse" (Dict "info" $info "var" "val" "value" $param.Ident) }}
+        r.{{$param.FieldIdent}} = {{ template "rhs" (Dict "info" $info "pkg" $pkg "var" "val") }}
+    }
+{{- else if eq $info.Kind "int" "int8" "int16" "int32" "int64" -}}
+    if q.Has("{{$param.Ident}}") {
+        {{$param.Ident}} := q.Get("{{$param.Ident}}")
+        {{ template "parse" (Dict "info" $info "var" "val" "value" $param.Ident) }}
+        r.{{$param.FieldIdent}} = {{ template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" "val") }}
+    }
+{{- else if eq $info.Kind "uint" "uint8" "uint16" "uint32" "uint64" -}}
+    if q.Has("{{$param.Ident}}") {
+        {{$param.Ident}} := q.Get("{{$param.Ident}}")
+        {{ template "parse" (Dict "info" $info "var" "val" "value" $param.Ident) }}
+        r.{{$param.FieldIdent}} = {{ template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" "val") }}
+    }
+{{- else if eq $info.Kind "slice" -}}
+    if q.Has("{{$param.Ident}}") {
+        {{ $elem := (index $info.Children 0) }}
+        {{ if eq $elem.Kind "string"}}
+        r.{{$param.FieldIdent}} = q[{{$param.Ident}}]
+        {{- else -}}
+        params := q[{{$param.Ident}}]
+        values := make([]{{ElemType $elem}}, 0, len(params))
+        for _, param := range params {
+            {{ template "parse" (Dict "info" $elem "value" "param" "var" "val") -}}
+            values = append(values, {{ template "rhs" (Dict "info" $elem "pkg" $pkg "var" "val") -}})
+        }
+        r.{{$param.FieldIdent}} = values
+    {{ end }}
+    }
+{{- else if eq $info.Kind "map" }}
+    if q.Has("{{$param.Ident}}") {
+        {{ $mapKey := index $info.Children 0 }}
+        {{ $mapValue := index $info.Children 1 }}
+        {{ $key := index $mapKey.Children 0 }}
+        {{ $value := index $mapValue.Children 0 }}
+
+        params := q["{{$param.Ident}}"]
+        r.{{$param.FieldIdent}} = make()
+        for i := 0; i < len(params); i += 2 {
+            r.{{$param.FieldIdent}}[{{ template "rhs" (Dict "info" $key "pkg" $pkg "var" "params[i]") -}}] = {{ template "rhs" (Dict "info" $value "pkg" $pkg "var" "params[i+1]") -}}
+        }
+    }
+{{- end -}}
+{{ end }}

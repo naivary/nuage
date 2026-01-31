@@ -16,15 +16,19 @@
 {{- if eq $info.Kind "ptr" -}}
     {{- $child := (index $info.Children 0) -}}
     {{- template "path_parameter_types" (Dict "param" $param "info" $child "pkg" $pkg) -}}
+{{- else if eq $info.Kind "named" -}}
+    {{- $child := (index $info.Children 0) -}}
+    {{- template "path_parameter_types" (Dict "param" $param "info" $child "pkg" $pkg) -}}
 {{- else if eq $info.Kind "string" -}}
     r.{{$param.FieldIdent}} = {{ template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" $param.Ident) }}
 {{- else if eq $info.Kind "int" "int8" "int16" "int32" "int64" -}}
     {{ $var := "val" }}
     {{ template "parse" (Dict "info" $info "value" $param.Ident "var" $var) -}}
     r.{{$param.FieldIdent}} = {{ template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" $var) }}
-{{- else if eq $info.Kind "named" -}}
-    {{- $child := (index $info.Children 0) -}}
-    {{- template "path_parameter_types" (Dict "param" $param "info" $child "pkg" $pkg) -}}
+{{- else if eq $info.Kind "uint" "uint8" "uint16" "uint32" "uint64" -}}
+    {{ $var := "val" }}
+    {{ template "parse" (Dict "info" $info "value" $param.Ident "var" $var) -}}
+    r.{{$param.FieldIdent}} = {{ template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" $var) }}
 {{- else if eq $info.Kind "slice" -}}
     {{ $elem := (index $info.Children 0) }}
     {{ if eq $elem.Kind "string"}}
@@ -36,6 +40,7 @@
         {{ template "parse" (Dict "info" $elem "value" "param" "var" "val") -}}
         values = append(values, {{ template "rhs" (Dict "info" $elem "pkg" $pkg "var" "val") -}})
     }
+    r.{{$param.FieldIdent}} = values
     {{ end }}
 {{- end -}}
 {{ end }}

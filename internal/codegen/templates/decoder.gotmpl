@@ -16,11 +16,15 @@ import (
 var _ nuage.Decoder = (*{{.Ident}})(nil)
 
 func (r *{{.Ident}}) Decode(req *http.Request) error {
+    {{- if IsQueryParamDefined .Parameters }}
+        q := req.URL.Query()
+    {{- end -}}
     {{- range $param := .Parameters -}}
         {{- if eq $param.In "path" -}}
             {{- template "path_parameter" (Dict "param" $param "info" $param.TypeInfo "pkg" $pkg) -}}
         {{- else if eq $param.In "header" -}}
         {{- else if eq $param.In "query" -}}
+            {{- template "query_parameter" (Dict "param" $param "info" $param.TypeInfo "pkg" $pkg) -}}
         {{- else if eq $param.In "cookie" -}}
         {{- end -}}
     {{- end }}

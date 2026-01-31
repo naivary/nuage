@@ -5,15 +5,18 @@ import (
 	"strconv"
 	"strings"
 	"text/template"
+
+	"github.com/naivary/nuage/openapi"
 )
 
 var FuncsMap = template.FuncMap{
-	"BitSize":    bitSize,
-	"Capitalize": capitalize,
-	"Dict":       dict,
-	"IsString":   isString,
-	"IsBasic":    isBasic,
-	"ElemType":   elemType,
+	"BitSize":             bitSize,
+	"Capitalize":          capitalize,
+	"Dict":                dict,
+	"IsString":            isString,
+	"IsBasic":             isBasic,
+	"ElemType":            elemType,
+	"IsQueryParamDefined": isQueryParamDefined,
 }
 
 func bitSize(typ string) int {
@@ -78,8 +81,14 @@ func elemType(info *typeInfo) string {
 	if info.Kind == kindNamed {
 		t += info.Ident
 	}
-    if isBasic(info) {
-        t += info.Kind
-    }
+	if isBasic(info) {
+		t += info.Kind
+	}
 	return t
+}
+
+func isQueryParamDefined(params []*parameter) bool {
+	return slices.ContainsFunc(params, func(p *parameter) bool {
+		return p.In == openapi.ParamInQuery
+	})
 }

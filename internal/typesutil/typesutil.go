@@ -2,6 +2,7 @@ package typesutil
 
 import (
 	"go/types"
+	"slices"
 )
 
 func IsComplex(kind types.BasicKind) bool {
@@ -49,6 +50,20 @@ func IsMap(typ types.Type, deref bool) bool {
 func IsPointer(typ types.Type) bool {
 	_, isPtr := typ.(*types.Pointer)
 	return isPtr
+}
+
+func IsBasicKind(typ types.Type, deref bool, kinds ...types.BasicKind) bool {
+	if !IsBasic(typ, deref) {
+		return false
+	}
+	typ = underlying(typ)
+	basic := typ.(*types.Basic)
+	return slices.ContainsFunc(
+		kinds,
+		func(kind types.BasicKind) bool {
+			return basic.Kind() == kind
+		},
+	)
 }
 
 func underlying(typ types.Type) types.Type {

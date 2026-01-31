@@ -22,7 +22,7 @@
     {{- end -}}
 
     {{- if eq $info.Pkg "" -}}
-        {{- if and (IsBasic $info) (ne $info.Kind "string") (ne $info.Kind "int64") -}}
+        {{- if and (IsBasic $info) (ne $info.Kind "string") (ne $info.Kind "int64") (ne $info.Kind "uint64") (ne $info.Kind "bool") -}}
         {{ $info.Kind }}({{ $arg }})
         {{- else -}}
         {{ $arg }}
