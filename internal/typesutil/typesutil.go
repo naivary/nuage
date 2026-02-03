@@ -52,6 +52,13 @@ func IsPointer(typ types.Type) bool {
 	return isPtr
 }
 
+func Deref(typ types.Type) types.Type {
+	if IsPointer(typ) {
+		return typ.(*types.Pointer).Elem()
+	}
+	return typ
+}
+
 func IsBasicKind(typ types.Type, deref bool, kinds ...types.BasicKind) bool {
 	if !IsBasic(typ, deref) {
 		return false

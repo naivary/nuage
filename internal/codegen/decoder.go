@@ -97,22 +97,7 @@ func GenDecoder(args []string) error {
 					continue
 				}
 				for _, spec := range genDecl.Specs {
-					typeSpec, isTypeSpec := spec.(*ast.TypeSpec)
-					if !isTypeSpec {
-						continue
-					}
-					ident := typeSpec.Name.Name
-					if !strings.HasSuffix(ident, "Request") {
-						continue
-					}
-					typ := pkg.TypesInfo.TypeOf(typeSpec.Type)
-					s, isStruct := typ.(*types.Struct)
-					if !isStruct {
-						continue
-					}
-
-					// From now the decl is considered a valid request model
-					// and will be analysed for code generation.
+					ident, s := isRequestModel(pkg, spec)
 					data, err := genDecoder(pkg, ident, s)
 					if err != nil {
 						return err
@@ -120,7 +105,6 @@ func GenDecoder(args []string) error {
 					if data == nil {
 						continue
 					}
-
 					// render the actual code
 					tmpl, err := template.New("decoder.gotmpl").Funcs(FuncsMap).ParseGlob("templates/*.gotmpl")
 					if err != nil {
@@ -165,24 +149,43 @@ func genDecoder(pkg *packages.Package, ident string, s *types.Struct) (*requestM
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", err, field.Name())
 		}
-		info := ResolveType(typ)
+		info := resolveType(typ)
 		if info == nil {
 			return nil, fmt.Errorf("type information can not be extracted: %s", field.Name())
 		}
 		param.TypeInfo = info
-		r.Imports = append(r.Imports, ResolveImports(pkg, info)...)
+		r.Imports = append(r.Imports, resolveImports(pkg, info)...)
 		r.Parameters = append(r.Parameters, &param)
 	}
 	return &r, nil
 }
 
-func ResolveType(typ types.Type) *typeInfo {
+// isRequestModel reports whether `spec` is a request model in the context
+// of nuage and should be considered for generation of code.
+func isRequestModel(pkg *packages.Package, spec ast.Spec) (string, *types.Struct) {
+	typeSpec, isTypeSpec := spec.(*ast.TypeSpec)
+	if !isTypeSpec {
+		return "", nil
+	}
+	ident := typeSpec.Name.Name
+	if !strings.HasSuffix(ident, "Request") {
+		return "", nil
+	}
+	typ := pkg.TypesInfo.TypeOf(typeSpec.Type)
+	s, isStruct := typ.(*types.Struct)
+	if !isStruct {
+		return "", nil
+	}
+	return ident, s
+}
+
+func resolveType(typ types.Type) *typeInfo {
 	switch t := typ.(type) {
 	case *types.Pointer:
 		return &typeInfo{
 			Kind: kindPtr,
 			Children: []*typeInfo{
-				ResolveType(t.Elem()),
+				resolveType(t.Elem()),
 			},
 		}
 	case *types.Alias:
@@ -190,7 +193,7 @@ func ResolveType(typ types.Type) *typeInfo {
 			Kind:  kindAlias,
 			Ident: t.Obj().Name(),
 			Children: []*typeInfo{
-				ResolveType(t.Underlying()),
+				resolveType(t.Underlying()),
 			},
 		}
 	case *types.Named:
@@ -199,7 +202,7 @@ func ResolveType(typ types.Type) *typeInfo {
 			Ident: t.Obj().Name(),
 			Pkg:   t.Obj().Pkg().Name(),
 			Children: []*typeInfo{
-				ResolveType(t.Underlying()),
+				resolveType(t.Underlying()),
 			},
 		}
 	case *types.Struct:
@@ -213,7 +216,7 @@ func ResolveType(typ types.Type) *typeInfo {
 				Kind:  kindField,
 				Ident: f.Name(),
 				Children: []*typeInfo{
-					ResolveType(f.Type()),
+					resolveType(f.Type()),
 				},
 			})
 		}
@@ -225,15 +228,15 @@ func ResolveType(typ types.Type) *typeInfo {
 		return &typeInfo{
 			Kind: kindMap,
 			Children: []*typeInfo{
-				{Kind: kindMapKey, Children: []*typeInfo{ResolveType(t.Key())}},
-				{Kind: kindMapValue, Children: []*typeInfo{ResolveType(t.Elem())}},
+				{Kind: kindMapKey, Children: []*typeInfo{resolveType(t.Key())}},
+				{Kind: kindMapValue, Children: []*typeInfo{resolveType(t.Elem())}},
 			},
 		}
 	case *types.Slice:
 		return &typeInfo{
 			Kind: kindSlice,
 			Children: []*typeInfo{
-				ResolveType(t.Elem()),
+				resolveType(t.Elem()),
 			},
 		}
 	case *types.Basic:
@@ -245,7 +248,7 @@ func ResolveType(typ types.Type) *typeInfo {
 	}
 }
 
-func ResolveImports(pkg *packages.Package, info *typeInfo) []string {
+func resolveImports(pkg *packages.Package, info *typeInfo) []string {
 	if info.Kind != kindNamed {
 		return nil
 	}
@@ -254,7 +257,7 @@ func ResolveImports(pkg *packages.Package, info *typeInfo) []string {
 		imports = append(imports, info.Pkg)
 	}
 	for _, i := range info.Children {
-		imports = append(imports, ResolveImports(pkg, i)...)
+		imports = append(imports, resolveImports(pkg, i)...)
 	}
 	return imports
 }
