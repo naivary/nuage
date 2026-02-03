@@ -57,3 +57,7 @@ required code for the runtime beforehand.
 
 - Implement the Generator (Parameter, RequestModel/ResponseModel Decoding + Encoding)
 - Create common middleware for Authn (oidc only allowed)
+
+## TODOs
+
+- Parse the options of each parameter and pass that to the template for correct rendering
