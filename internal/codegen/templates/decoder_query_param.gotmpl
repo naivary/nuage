@@ -55,18 +55,35 @@
         r.{{$param.FieldIdent}} = values
     {{ end }}
     }
-{{- else if eq $info.Kind "map" }}
+{{- else if and (eq $info.Kind "map") ($param.Opts.Explode) }}
     if q.Has("{{$param.Ident}}") {
         {{ $mapKey := index $info.Children 0 }}
         {{ $mapValue := index $info.Children 1 }}
         {{ $key := index $mapKey.Children 0 }}
         {{ $value := index $mapValue.Children 0 }}
 
-        params := q["{{$param.Ident}}"]
-        r.{{$param.FieldIdent}} = make()
-        for i := 0; i < len(params); i += 2 {
-            r.{{$param.FieldIdent}}[{{ template "rhs" (Dict "info" $key "pkg" $pkg "var" "params[i]") -}}] = {{ template "rhs" (Dict "info" $value "pkg" $pkg "var" "params[i+1]") -}}
+        r.{{$param.FieldIdent}} = make(map[{{ElemType $key}}]{{ElemType $value}}, len(q))
+        for k := range q {
+            r.{{$param.FieldIdent}}[{{ template "rhs" (Dict "info" $key "pkg" $pkg "var" "k") -}}] = {{ template "rhs" (Dict "info" $value "pkg" $pkg "var" "q.Get(k)") -}}
         }
     }
+{{- else if and (eq $info.Kind "map") (not $param.Opts.Explode) }}
+    if q.Has("{{$param.Ident}}") {
+        {{ $mapKey := index $info.Children 0 }}
+        {{ $mapValue := index $info.Children 1 }}
+        {{ $key := index $mapKey.Children 0 }}
+        {{ $value := index $mapValue.Children 0 }}
+
+        params := q[{{$param.Ident}}]
+        r.{{$param.FieldIdent}} = make(map[{{ElemType $key}}]{{ElemType $value}}, len(q))
+        for i := 0; i < len(params); i += 2 {
+            v := ""
+            if len(params) >= i + 1 {
+                v = params[i+1]
+            }
+            r.{{$param.FieldIdent}}[{{ template "rhs" (Dict "info" $key "pkg" $pkg "var" "params[i]") -}}] = {{ template "rhs" (Dict "info" $value "pkg" $pkg "var" "v") -}}
+        }
+    }
+{{- else if and (eq $info.Kind "struct") (eq $param.Opts.Style "deepObject") }}
 {{- end -}}
 {{ end }}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go/types"
 
+	"github.com/naivary/nuage/internal/openapiutil"
 	"github.com/naivary/nuage/internal/typesutil"
 	"github.com/naivary/nuage/openapi"
 )
@@ -14,14 +15,14 @@ const (
 	_cookieTypeName = "http.Cookie"
 )
 
-func isSupportedParamType(in openapi.ParamIn, typ types.Type) error {
-	switch in {
+func isSupportedParamType(opts *openapiutil.ParamOpts, typ types.Type) error {
+	switch opts.In {
 	case openapi.ParamInPath:
 		return isSupportedPathParamType(typ)
 	case openapi.ParamInHeader:
 		return isSupportedHeaderParamType(typ)
 	case openapi.ParamInQuery:
-		return isSupportedQueryType(typ)
+		return isSupportedQueryType(opts, typ)
 	case openapi.ParamInCookie:
 		return isSupportedCookieType(typ)
 	default:
@@ -102,19 +103,22 @@ func isSupportedCookieType(typ types.Type) error {
 	return nil
 }
 
-func isSupportedQueryType(typ types.Type) error {
+func isSupportedQueryType(opts *openapiutil.ParamOpts, typ types.Type) error {
 	switch t := typ.(type) {
 	case *types.Pointer:
-		return isSupportedQueryType(t.Elem())
+		return isSupportedQueryType(opts, t.Elem())
 	case *types.Alias:
-		return isSupportedQueryType(t.Rhs())
+		return isSupportedQueryType(opts, t.Rhs())
 	case *types.Basic:
 		return isSupportedQueryParamBasicType(t)
 	case *types.Named:
-		return isSupportedQuertParamNamedType(t)
+		return isSupportedQuertParamNamedType(opts, t)
 	case *types.Slice:
 		return isSupportedQueryParamBasicType(t.Elem())
 	case *types.Map:
+		if opts.Style != openapi.ParamStyleForm {
+			return errors.New("query parameter type map can only be used with style form")
+		}
 		isKeyTypeBasic := typesutil.IsBasic(t.Key(), true)
 		isValTypeBasic := typesutil.IsBasic(t.Elem(), true)
 		if !isKeyTypeBasic || !isValTypeBasic {
@@ -124,13 +128,16 @@ func isSupportedQueryType(typ types.Type) error {
 			return errors.New("maps can only have ~string types as key and value")
 		}
 	case *types.Struct:
+		if opts.Style != openapi.ParamStyleDeepObject {
+			return errors.New("query parameter type struct can only be used with style deepObject")
+		}
 		for field := range t.Fields() {
 			fieldType := field.Type()
 			err := isSupportedQueryParamBasicType(fieldType)
 			if err == nil {
 				continue
 			}
-			err = isSupportedQuertParamNamedType(fieldType)
+			err = isSupportedQuertParamNamedType(opts, fieldType)
 			if err != nil {
 				return err
 			}
@@ -153,7 +160,7 @@ func isSupportedQueryParamBasicType(typ types.Type) error {
 	return nil
 }
 
-func isSupportedQuertParamNamedType(typ types.Type) error {
+func isSupportedQuertParamNamedType(opts *openapiutil.ParamOpts, typ types.Type) error {
 	typ = typesutil.Deref(typ)
 	named, isNamed := typ.(*types.Named)
 	if !isNamed {
@@ -162,5 +169,5 @@ func isSupportedQuertParamNamedType(typ types.Type) error {
 	if named.String() == _timeTypeName {
 		return nil
 	}
-	return isSupportedQueryType(named.Underlying())
+	return isSupportedQueryType(opts, named.Underlying())
 }

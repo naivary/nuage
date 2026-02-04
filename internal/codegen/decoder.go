@@ -55,6 +55,8 @@ type parameter struct {
 	In openapi.ParamIn
 
 	TypeInfo *typeInfo
+
+	Opts *openapiutil.ParamOpts
 }
 
 type typeInfo struct {
@@ -98,6 +100,9 @@ func GenDecoder(args []string) error {
 				}
 				for _, spec := range genDecl.Specs {
 					ident, s := isRequestModel(pkg, spec)
+                    if s == nil {
+                        continue
+                    }
 					data, err := genDecoder(pkg, ident, s)
 					if err != nil {
 						return err
@@ -138,14 +143,15 @@ func genDecoder(pkg *packages.Package, ident string, s *types.Struct) (*requestM
 			// field is not a parameter or at an invalid location
 			continue
 		}
-		val := tag.Get(string(param.In))
-		if len(val) == 0 {
-			return nil, fmt.Errorf("struct field tag is missing the name of the parameter: %s", field.Name())
+		opts, err := openapiutil.ParseParamOpts(tag)
+		if err != nil {
+			return nil, err
 		}
-		param.Ident = strings.Split(val, ",")[0]
+		param.Ident = opts.Name
+		param.Opts = opts
 
 		typ := field.Type()
-		err := isSupportedParamType(param.In, typ)
+		err = isSupportedParamType(opts, typ)
 		if err != nil {
 			return nil, fmt.Errorf("%w: %s", err, field.Name())
 		}

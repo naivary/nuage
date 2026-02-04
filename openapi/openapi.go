@@ -7,13 +7,6 @@ import (
 )
 
 const (
-	TagKeyPathParam   = "path"
-	TagKeyQueryParam  = "query"
-	TagKeyHeaderParam = "header"
-	TagKeyCookieParam = "cookie"
-)
-
-const (
 	// OpenAPIVersion is the OpenAPI Specification version implemented
 	// and supported by this framework.
 	//
@@ -38,6 +31,21 @@ const (
 	ParamInHeader ParamIn = "header"
 	ParamInCookie ParamIn = "cookie"
 )
+
+func (p ParamIn) String() string {
+	switch p {
+	case ParamInPath:
+		return "path"
+	case ParamInQuery:
+		return "query"
+	case ParamInHeader:
+		return "header"
+	case ParamInCookie:
+		return "cookie"
+	default:
+		return ""
+	}
+}
 
 type ParamStyle string
 
