@@ -140,10 +140,10 @@ func isSupportedQueryType(opts *openapiutil.ParamOpts, typ types.Type) error {
 			if err == nil {
 				continue
 			}
-			err = isSupportedQueryParamNamedType(opts, fieldType)
-			if err != nil {
-				return err
-			}
+			// err = isSupportedQueryParamNamedType(opts, fieldType)
+			// if err != nil {
+			// 	return err
+			// }
 		}
 	default:
 		return errors.New("type is not supported for query parameter")
