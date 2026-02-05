@@ -2,7 +2,6 @@ package typesutil
 
 import (
 	"go/types"
-	"slices"
 )
 
 func IsComplex(kind types.BasicKind) bool {
@@ -11,6 +10,28 @@ func IsComplex(kind types.BasicKind) bool {
 
 func IsFloat(kind types.BasicKind) bool {
 	return kind == types.Float64 || kind == types.Float32
+}
+
+func IsInt(kind types.BasicKind) bool {
+	switch kind {
+	case types.Int, types.Int8, types.Int16, types.Int32, types.Int64:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsUint(kind types.BasicKind) bool {
+	switch kind {
+	case types.Uint, types.Uint8, types.Uint16, types.Uint32, types.Uint64:
+		return true
+	default:
+		return false
+	}
+}
+
+func IsString(kind types.BasicKind) bool {
+	return kind == types.String
 }
 
 // IsBasic reports wheret `typ` is basic. If `deref` is true
@@ -57,20 +78,6 @@ func Deref(typ types.Type) types.Type {
 		return typ.(*types.Pointer).Elem()
 	}
 	return typ
-}
-
-func IsBasicKind(typ types.Type, deref bool, kinds ...types.BasicKind) bool {
-	if !IsBasic(typ, deref) {
-		return false
-	}
-	typ = underlying(typ)
-	basic := typ.(*types.Basic)
-	return slices.ContainsFunc(
-		kinds,
-		func(kind types.BasicKind) bool {
-			return basic.Kind() == kind
-		},
-	)
 }
 
 func underlying(typ types.Type) types.Type {
