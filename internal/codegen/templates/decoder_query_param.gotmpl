@@ -85,5 +85,8 @@
         }
     }
 {{- else if and (eq $info.Kind "struct") (eq $param.Opts.Style "deepObject") }}
+    {{ range $field := $info.Children }}
+        r.{{ $param.FieldIdent }}.{{ $field.Ident }}
+    {{ end }}
 {{- end -}}
 {{ end }}

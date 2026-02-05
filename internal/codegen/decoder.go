@@ -100,9 +100,9 @@ func GenDecoder(args []string) error {
 				}
 				for _, spec := range genDecl.Specs {
 					ident, s := isRequestModel(pkg, spec)
-                    if s == nil {
-                        continue
-                    }
+					if s == nil {
+						continue
+					}
 					data, err := genDecoder(pkg, ident, s)
 					if err != nil {
 						return err
@@ -218,13 +218,9 @@ func resolveType(typ types.Type) *typeInfo {
 		}
 		fields := make([]*typeInfo, 0, t.NumFields())
 		for f := range t.Fields() {
-			fields = append(fields, &typeInfo{
-				Kind:  kindField,
-				Ident: f.Name(),
-				Children: []*typeInfo{
-					resolveType(f.Type()),
-				},
-			})
+			info := resolveType(f.Type())
+			info.Ident = f.Name()
+			fields = append(fields, info)
 		}
 		return &typeInfo{
 			Kind:     kindStruct,
