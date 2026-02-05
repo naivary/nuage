@@ -34,11 +34,15 @@ func IsString(kind types.BasicKind) bool {
 	return kind == types.String
 }
 
+func IsBool(kind types.BasicKind) bool {
+	return kind == types.Bool
+}
+
 // IsBasic reports wheret `typ` is basic. If `deref` is true
 // it will dereference Alias, Pointers and Named types.
 func IsBasic(typ types.Type, deref bool) bool {
 	if deref {
-		typ = underlying(typ)
+		typ = Underlying(typ)
 	}
 	_, isBasic := typ.(*types.Basic)
 	return isBasic
@@ -46,7 +50,7 @@ func IsBasic(typ types.Type, deref bool) bool {
 
 func IsSlice(typ types.Type, deref bool) bool {
 	if deref {
-		typ = underlying(typ)
+		typ = Underlying(typ)
 	}
 	_, isSlice := typ.(*types.Slice)
 	return isSlice
@@ -54,7 +58,7 @@ func IsSlice(typ types.Type, deref bool) bool {
 
 func IsStruct(typ types.Type, deref bool) bool {
 	if deref {
-		typ = underlying(typ)
+		typ = Underlying(typ)
 	}
 	_, isStruct := typ.(*types.Struct)
 	return isStruct
@@ -62,7 +66,7 @@ func IsStruct(typ types.Type, deref bool) bool {
 
 func IsMap(typ types.Type, deref bool) bool {
 	if deref {
-		typ = underlying(typ)
+		typ = Underlying(typ)
 	}
 	_, isMap := typ.(*types.Map)
 	return isMap
@@ -80,14 +84,14 @@ func Deref(typ types.Type) types.Type {
 	return typ
 }
 
-func underlying(typ types.Type) types.Type {
+func Underlying(typ types.Type) types.Type {
 	switch t := typ.(type) {
 	case *types.Pointer:
-		return underlying(t.Elem())
+		return Underlying(t.Elem())
 	case *types.Alias:
-		return underlying(t.Rhs())
+		return Underlying(t.Rhs())
 	case *types.Named:
-		return underlying(t.Underlying())
+		return Underlying(t.Underlying())
 	default:
 		return t
 	}

@@ -18,14 +18,11 @@ import (
 )
 
 const (
-	kindPtr      = "ptr"
-	kindMap      = "map"
-	kindMapKey   = "map.key"
-	kindMapValue = "map.value"
-	kindSlice    = "slice"
-	kindStruct   = "struct"
-	kindAlias    = "alias"
-	kindNamed    = "named"
+	kindPtr    = "ptr"
+	kindMap    = "map"
+	kindSlice  = "slice"
+	kindStruct = "struct"
+	kindNamed  = "named"
 )
 
 type requestModel struct {
@@ -150,9 +147,8 @@ func genDecoder(pkg *packages.Package, ident string, s *types.Struct) (*requestM
 		param.Opts = opts
 
 		typ := field.Type()
-		err = isSupportedParamType(opts, typ)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %s", err, field.Name())
+		if !isSupportedParamType(opts, typ) {
+			return nil, fmt.Errorf("paramater type is not supported: %s", field.Name())
 		}
 		info := resolveType(typ)
 		if info == nil {
@@ -193,14 +189,6 @@ func resolveType(typ types.Type) *typeInfo {
 				resolveType(t.Elem()),
 			},
 		}
-	case *types.Alias:
-		return &typeInfo{
-			Kind:  kindAlias,
-			Ident: t.Obj().Name(),
-			Children: []*typeInfo{
-				resolveType(t.Underlying()),
-			},
-		}
 	case *types.Named:
 		return &typeInfo{
 			Kind:  kindNamed,
@@ -210,9 +198,13 @@ func resolveType(typ types.Type) *typeInfo {
 				resolveType(t.Underlying()),
 			},
 		}
+	case *types.Basic:
+		return &typeInfo{
+			Kind: t.Name(),
+		}
 	case *types.Struct:
 		switch t.String() {
-		case _timeTypeName, _cookieTypeName:
+		case "time.Time", "http.Cookie":
 			return nil
 		}
 		fields := make([]*typeInfo, 0, t.NumFields())
@@ -226,23 +218,20 @@ func resolveType(typ types.Type) *typeInfo {
 			Children: fields,
 		}
 	case *types.Map:
-		return &typeInfo{
-			Kind: kindMap,
-			Children: []*typeInfo{
-				{Kind: kindMapKey, Children: []*typeInfo{resolveType(t.Key())}},
-				{Kind: kindMapValue, Children: []*typeInfo{resolveType(t.Elem())}},
-			},
+		info := &typeInfo{
+			Kind:     kindMap,
+			Children: make([]*typeInfo, 0, 2),
 		}
+		key := resolveType(t.Key())
+		val := resolveType(t.Elem())
+		info.Children = append(info.Children, key, val)
+		return info
 	case *types.Slice:
 		return &typeInfo{
 			Kind: kindSlice,
 			Children: []*typeInfo{
 				resolveType(t.Elem()),
 			},
-		}
-	case *types.Basic:
-		return &typeInfo{
-			Kind: t.Name(),
 		}
 	default:
 		return nil

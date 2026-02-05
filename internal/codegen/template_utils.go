@@ -3,7 +3,6 @@ package codegen
 import (
 	"slices"
 	"strconv"
-	"strings"
 	"text/template"
 
 	"github.com/naivary/nuage/openapi"
@@ -11,10 +10,10 @@ import (
 
 var FuncsMap = template.FuncMap{
 	"BitSize":             bitSize,
-	"Capitalize":          capitalize,
 	"Dict":                dict,
 	"IsString":            isString,
 	"IsBasic":             isBasic,
+	"IsInteger":           isInteger,
 	"ElemType":            elemType,
 	"IsQueryParamDefined": isQueryParamDefined,
 }
@@ -32,14 +31,6 @@ func bitSize(typ string) int {
 	default:
 		return strconv.IntSize
 	}
-}
-
-func capitalize(s string) string {
-	if len(s) == 0 {
-		return s
-	}
-	first := strings.ToUpper(string(s[0]))
-	return first + s[1:]
 }
 
 func dict(pairs ...any) map[string]any {
@@ -65,10 +56,21 @@ func isString(info *typeInfo) bool {
 
 func isBasic(info *typeInfo) bool {
 	switch info.Kind {
-	case kindPtr, kindMap, kindMapKey, kindMapValue, kindSlice, kindStruct, kindAlias, kindNamed:
+	case kindPtr, kindMap, kindSlice, kindStruct, kindNamed:
 		return false
 	default:
 		return true
+	}
+}
+
+func isInteger(kind string) bool {
+	switch kind {
+	case "int", "int8", "int16", "int32", "int64":
+		return true
+	case "uint", "uin8", "uin16", "uin32", "uin64":
+		return true
+	default:
+		return false
 	}
 }
 
