@@ -86,7 +86,11 @@
     }
 {{- else if and (eq $info.Kind "struct") (eq $param.Opts.Style "deepObject") }}
     {{ range $field := $info.Children }}
-        r.{{ $param.FieldIdent }}.{{ $field.Ident }}
+        {{ $deepIdent := printf "%s[%s]" $param.Ident $field.Ident }}
+        if q.Has("{{$deepIdent}}") {
+            {{ template "parse" (Dict "info" $field "value" "param" "var" "val") -}}
+            r.{{ $param.FieldIdent }}.{{ $field.Ident }} = {{ template "rhs" (Dict "info" $field "pkg" $pkg "var" "val") }}
+        }
     {{ end }}
 {{- end -}}
 {{ end }}

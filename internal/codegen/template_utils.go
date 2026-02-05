@@ -65,7 +65,7 @@ func isString(info *typeInfo) bool {
 
 func isBasic(info *typeInfo) bool {
 	switch info.Kind {
-	case kindPtr, kindMap, kindMapKey, kindMapValue, kindSlice, kindStruct, kindField, kindAlias, kindNamed:
+	case kindPtr, kindMap, kindMapKey, kindMapValue, kindSlice, kindStruct, kindAlias, kindNamed:
 		return false
 	default:
 		return true

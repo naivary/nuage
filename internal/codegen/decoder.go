@@ -24,7 +24,6 @@ const (
 	kindMapValue = "map.value"
 	kindSlice    = "slice"
 	kindStruct   = "struct"
-	kindField    = "field"
 	kindAlias    = "alias"
 	kindNamed    = "named"
 )

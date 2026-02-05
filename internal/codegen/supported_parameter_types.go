@@ -112,7 +112,7 @@ func isSupportedQueryType(opts *openapiutil.ParamOpts, typ types.Type) error {
 	case *types.Basic:
 		return isSupportedQueryParamBasicType(t)
 	case *types.Named:
-		return isSupportedQuertParamNamedType(opts, t)
+		return isSupportedQueryParamNamedType(opts, t)
 	case *types.Slice:
 		return isSupportedQueryParamBasicType(t.Elem())
 	case *types.Map:
@@ -133,11 +133,14 @@ func isSupportedQueryType(opts *openapiutil.ParamOpts, typ types.Type) error {
 		}
 		for field := range t.Fields() {
 			fieldType := field.Type()
+			if typesutil.IsMap(fieldType, true) {
+				return errors.New("query parameter types not supported")
+			}
 			err := isSupportedQueryParamBasicType(fieldType)
 			if err == nil {
 				continue
 			}
-			err = isSupportedQuertParamNamedType(opts, fieldType)
+			err = isSupportedQueryParamNamedType(opts, fieldType)
 			if err != nil {
 				return err
 			}
@@ -148,7 +151,13 @@ func isSupportedQueryType(opts *openapiutil.ParamOpts, typ types.Type) error {
 	return nil
 }
 
+// TODO: this is not working if you pass in a slice of basic kiknd. It will return nil because it is
+// considered supproted by this function.
 func isSupportedQueryParamBasicType(typ types.Type) error {
+	isBasic := typesutil.IsBasic(typ, true)
+	if !isBasic {
+		return errors.New("not a basic type")
+	}
 	isUnsupported := typesutil.IsBasicKind(
 		typ,
 		true,
@@ -160,7 +169,7 @@ func isSupportedQueryParamBasicType(typ types.Type) error {
 	return nil
 }
 
-func isSupportedQuertParamNamedType(opts *openapiutil.ParamOpts, typ types.Type) error {
+func isSupportedQueryParamNamedType(opts *openapiutil.ParamOpts, typ types.Type) error {
 	typ = typesutil.Deref(typ)
 	named, isNamed := typ.(*types.Named)
 	if !isNamed {

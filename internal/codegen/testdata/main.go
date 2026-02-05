@@ -43,6 +43,11 @@ type QueryParamRequest struct {
 	MapPtrKey        map[*string]string `query:"ptr_key_object"`
 	MapPtrKeyExplode map[*string]string `query:"ptr_key_explode,explode=false"`
 	DeepObject       struct {
-		P1 string
+		S1      string
+		Int     int
+		Int64   int64
+		Ptr     *string
+		PtrInt  *int32
+		Invalid []string
 	} `query:"deepObject,style=deepObject"`
 }
