@@ -1,7 +1,7 @@
 {{ define "path_parameter" }}
 {{- $param := (index . "param") -}}
 {{- $info := (index . "info") -}}
-{{ $pkg := (index . "pkg") }}
+{{- $pkg := (index . "pkg") }}
     {{$param.Ident}} := req.PathValue("{{$param.Ident}}")
     if len({{$param.Ident}}) != 0 {
         {{ template "path_parameter_types" (Dict "param" $param "info" $info "pkg" $pkg) }}
@@ -12,7 +12,6 @@
 {{- $param := (index . "param") -}}
 {{- $info := (index . "info") -}}
 {{- $pkg := (index . "pkg") -}}
-
 {{- if eq $info.Kind "ptr" -}}
     {{- $child := (index $info.Children 0) -}}
     {{- template "path_parameter_types" (Dict "param" $param "info" $child "pkg" $pkg) -}}
@@ -22,7 +21,7 @@
 {{- else if eq $info.Kind "string" -}}
     r.{{$param.FieldIdent}} = {{ template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" $param.Ident) }}
 {{- else if IsInteger $info.Kind -}}
-    {{ $var := "val" }}
+    {{- $var := "val" -}}
     {{ template "parse" (Dict "info" $info "value" $param.Ident "var" $var) -}}
     r.{{$param.FieldIdent}} = {{ template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" $var) }}
 {{- end -}}

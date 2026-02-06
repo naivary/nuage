@@ -105,26 +105,8 @@ func isSupportedQueryParamType(opts *openapiutil.ParamOpts, typ types.Type) bool
 		}
 		return typesutil.IsString(basicKey.Kind()) &&
 			typesutil.IsString(basicVal.Kind())
-	case *types.Struct:
-		if opts.Style != openapi.ParamStyleDeepObject {
-			return false
-		}
-		for field := range t.Fields() {
-			fieldType := typesutil.Underlying(field.Type())
-			slice, isSlice := fieldType.(*types.Slice)
-			if isSlice {
-				elem := typesutil.Underlying(slice.Elem())
-				if isSupportedQueryParamBasicType(elem) {
-					continue
-				}
-				return false
-			}
-			if !isSupportedQueryParamBasicType(fieldType) {
-				return false
-			}
-		}
 	}
-    return true
+	return true
 }
 
 func isSupportedQueryParamBasicType(typ types.Type) bool {

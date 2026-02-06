@@ -2,7 +2,6 @@
     {{- $info := (index . "info") -}}
     {{- $pkg := (index . "pkg") -}}
     {{- $var := (index . "var") -}}
-
     {{- if eq $info.Kind "ptr" -}}
     nuage.Ptr({{- template "rhs_type" (Dict "info" (index $info.Children 0) "pkg" $pkg "var" $var) -}})
     {{- else -}}

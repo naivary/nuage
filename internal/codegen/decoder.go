@@ -1,10 +1,12 @@
 package codegen
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
 	"go/ast"
+	"go/format"
 	"go/token"
 	"go/types"
 	"os"
@@ -107,13 +109,19 @@ func GenDecoder(args []string) error {
 						continue
 					}
 					// render the actual code
+					var buf bytes.Buffer
 					tmpl, err := template.New("decoder.gotmpl").Funcs(FuncsMap).ParseGlob("templates/*.gotmpl")
 					if err != nil {
 						return err
 					}
-					if err := tmpl.ExecuteTemplate(os.Stdout, "decoder", data); err != nil {
+					if err := tmpl.ExecuteTemplate(&buf, "decoder", data); err != nil {
 						return err
 					}
+					formatted, err := format.Source(buf.Bytes())
+					if err != nil {
+						return err
+					}
+					fmt.Fprintf(os.Stdout, "%s", formatted)
 				}
 			}
 		}

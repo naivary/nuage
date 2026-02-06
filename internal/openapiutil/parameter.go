@@ -17,7 +17,7 @@ This parameter style is valid in OpenAPI but intentionally unsupported in this f
 nuage only supports a restricted set of parameter styles to guarantee clarity, interoperability, and predictable request parsing.
 Currently the following parameter styles are supported:
 	1. Path: simple
-	2. Query: form, deepObject
+	2. Query: form
 	3. Header: simple
 	4. Cookie: form
 
@@ -39,7 +39,7 @@ func ParamLocation(tag reflect.StructTag) openapi.ParamIn {
 	return ""
 }
 
-func DefaultParamOpts(name string, in openapi.ParamIn) *ParamOpts {
+func defaultParamOpts(name string, in openapi.ParamIn) *ParamOpts {
 	switch in {
 	case openapi.ParamInPath:
 		return &ParamOpts{
@@ -95,21 +95,24 @@ func ParseParamOpts(tag reflect.StructTag) (*ParamOpts, error) {
 		return nil, errors.New("parameter tag value is empty")
 	}
 	definedOpts := strings.Split(tagValue, ",")
-	opts := DefaultParamOpts(definedOpts[0], in)
+	opts := defaultParamOpts(definedOpts[0], in)
 	// per default all parameters are required and become
 	// optional when a default is set.
 	opts.Required = true
 	for _, opt := range definedOpts[1:] {
+		if opt == "deprecated" {
+			opts.IsDeprecated = true
+		}
 		if strings.HasPrefix(opt, "explode") {
 			_, value, _ := strings.Cut(opt, "=")
+			if value == "" {
+				return nil, fmt.Errorf("rhs of `%s` is empty", opt)
+			}
 			e, err := strconv.ParseBool(value)
 			if err != nil {
 				return nil, err
 			}
 			opts.Explode = e
-		}
-		if opt == "deprecated" {
-			opts.IsDeprecated = true
 		}
 		if strings.HasPrefix(opt, "style") {
 			_, value, _ := strings.Cut(opt, "=")
@@ -142,13 +145,11 @@ func NewPathParam(opts *ParamOpts) (*openapi.Parameter, error) {
 }
 
 func NewHeaderParam(opts *ParamOpts) (*openapi.Parameter, error) {
-	// Header key must be canonical
 	switch opts.Style {
 	case openapi.ParamStyleSimple:
 	default:
 		return nil, ErrParamStyleNotSupported
 	}
-
 	canonicalName := http.CanonicalHeaderKey(opts.Name)
 	if canonicalName != opts.Name {
 		return nil, fmt.Errorf(
@@ -160,9 +161,8 @@ func NewHeaderParam(opts *ParamOpts) (*openapi.Parameter, error) {
 		ParamIn:    openapi.ParamInHeader,
 		Name:       canonicalName,
 		Deprecated: opts.IsDeprecated,
-		// Headers are always style simple
-		Style:    opts.Style,
-		Required: opts.Required,
+		Style:      opts.Style,
+		Required:   opts.Required,
 	}, nil
 }
 
@@ -172,7 +172,6 @@ func NewCookieParam(opts *ParamOpts) (*openapi.Parameter, error) {
 	default:
 		return nil, ErrParamStyleNotSupported
 	}
-
 	return &openapi.Parameter{
 		ParamIn:    openapi.ParamInCookie,
 		Name:       opts.Name,
@@ -184,13 +183,9 @@ func NewCookieParam(opts *ParamOpts) (*openapi.Parameter, error) {
 
 func NewQueryParam(opts *ParamOpts) (*openapi.Parameter, error) {
 	switch opts.Style {
-	case openapi.ParamStyleForm, openapi.ParamStyleDeepObject:
+	case openapi.ParamStyleForm:
 	default:
 		return nil, ErrParamStyleNotSupported
-	}
-
-	if opts.Style == openapi.ParamStyleDeepObject {
-		opts.Explode = true
 	}
 	return &openapi.Parameter{
 		ParamIn:    openapi.ParamInQuery,

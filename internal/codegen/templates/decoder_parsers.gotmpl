@@ -1,27 +1,23 @@
 {{ define "parse" }}
     {{- $info := index . "info" -}}
-
     {{- $value := index . "value" -}}
     {{- $var := index . "var" -}}
-
     {{- if or (eq $info.Kind "named") (eq $info.Kind "ptr") -}}
-        {{ $child := (index $info.Children 0) }}
+        {{- $child := (index $info.Children 0) -}}
         {{ template "parse" (Dict "info" $child "value" $value "var" $var) }}
     {{- else if eq $info.Kind "int" "int8" "int16" "int32" "int64" -}}
         {{ template "parse_int" (Dict "info" $info "value" $value "var" $var) }}
     {{- else if eq $info.Kind "uint" "uint8" "uint16" "uint32" "uint64" -}}
         {{ template "parse_uint" (Dict "info" $info "value" $value "var" $var) }}
-    {{- else if eq $info.Kind "bool" }}
+    {{- else if eq $info.Kind "bool" -}}
         {{ template "parse_bool" (Dict "value" $value "var" $var) }}
     {{- end -}}
 {{ end }}
 
 {{ define "parse_int" }}
     {{- $info := index . "info" -}}
-
     {{- $value := index . "value" -}}
     {{- $var := index . "var" -}}
-
     {{$var}}, err := strconv.ParseInt({{$value}}, 10, {{ BitSize $info.Kind }})
     if err != nil {
         return err
@@ -30,10 +26,8 @@
 
 {{ define "parse_uint" }}
     {{- $info := index . "info" -}}
-
     {{- $value := index . "value" -}}
     {{- $var := index . "var" -}}
-
     {{$var}}, err := strconv.ParseUint({{$value}}, 10, {{ BitSize $info.Kind }})
     if err != nil {
         return err
@@ -43,7 +37,6 @@
 {{ define "parse_bool" }}
     {{- $value := index . "value" -}}
     {{- $var := index . "var" -}}
-
     {{$var}}, err := strconv.ParseBool({{$value}})
     if err != nil {
         return err

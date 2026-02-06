@@ -23,28 +23,17 @@ type PathParamRequest struct {
 }
 
 type QueryParamRequest struct {
-	Str              string             `query:"str"`
-	Bool             bool               `query:"boolean"`
-	Int32            int32              `query:"int_32"`
-	Int64            int64              `query:"int_64"`
-	PtrInt64         *int64             `query:"ptr_int_64"`
-	Uint32           uint32             `query:"uint_32"`
-	Uint64           uint64             `query:"uint_64"`
-	PtrUint64        *uint64            `query:"ptr_uint_64"`
-	SliceString      []string           `query:"slice_string"`
-	SliceInt         []int              `query:"slice_int"`
-	Map              map[string]string  `query:"object"`
-	MapNamed         map[String]string  `query:"named_object"`
-	MapPtrKey        map[*string]string `query:"ptr_key_object"`
-	MapPtrKeyExplode map[*string]string `query:"ptr_key_explode,explode=false"`
-	DeepObject       struct {
-		S1          string
-		Int         int
-		Int64       int64
-		Ptr         *string
-		PtrInt      *int32
-		StrSlice    []string
-		IntSlice    []int
-		StringSlice []String
-	} `query:"deepObject,style=deepObject"`
+	Str           string            `query:"str"`
+	Bool          bool              `query:"boolean"`
+	Int32         int32             `query:"int_32"`
+	Int64         int64             `query:"int_64"`
+	PtrInt64      *int64            `query:"ptr_int_64"`
+	Uint32        uint32            `query:"uint_32"`
+	Uint64        uint64            `query:"uint_64"`
+	PtrUint64     *uint64           `query:"ptr_uint_64"`
+	SliceString   []string          `query:"slice_string,explode=false"`
+	SliceInt      []int             `query:"slice_int"`
+	SliceInt32    []int32           `query:"slice_int32,explode=false"`
+	MapExplode    map[string]string `query:"mapper"`
+	MapNotExplode map[string]string `query:"mapper,explode=false"`
 }
