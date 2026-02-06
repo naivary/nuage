@@ -43,3 +43,7 @@ type QueryParamRequest struct {
 type CookieParamRequest struct {
 	CPtr *http.Cookie `cookie:"x_ptr"`
 }
+
+type HeaderParamRequest struct {
+	Str string `header:"str"`
+}

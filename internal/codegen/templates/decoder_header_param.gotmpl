@@ -1,23 +1,23 @@
-{{ define "path_parameter" }}
+{{ define "header_parameter" }}
 {{- $param := (index . "param") -}}
 {{- $info := (index . "info") -}}
 {{- $pkg := (index . "pkg") }}
-{{$param.Ident}} := req.PathValue("{{$param.Ident}}")
+{{$param.Ident}} := req.Header.Get("{{$param.Ident}}")
 if len({{$param.Ident}}) != 0 {
-    {{ template "path_parameter_types" (Dict "param" $param "info" $info "pkg" $pkg) }}
+    {{ template "header_parameter_types" (Dict "param" $param "info" $info "pkg" $pkg) }}
 }
 {{ end }}
 
-{{ define "path_parameter_types" }}
+{{ define "header_parameter_types" }}
 {{- $param := (index . "param") -}}
 {{- $info := (index . "info") -}}
 {{- $pkg := (index . "pkg") -}}
 {{- if eq $info.Kind "ptr" -}}
     {{- $child := (index $info.Children 0) -}}
-    {{- template "path_parameter_types" (Dict "param" $param "info" $child "pkg" $pkg) -}}
+    {{- template "header_parameter_types" (Dict "param" $param "info" $child "pkg" $pkg) -}}
 {{- else if eq $info.Kind "named" -}}
     {{- $child := (index $info.Children 0) -}}
-    {{- template "path_parameter_types" (Dict "param" $param "info" $child "pkg" $pkg) -}}
+    {{- template "header_parameter_types" (Dict "param" $param "info" $child "pkg" $pkg) -}}
 {{- else if eq $info.Kind "string" -}}
     r.{{$param.FieldIdent}} = {{ template "rhs" (Dict "info" $param.TypeInfo "pkg" $pkg "var" $param.Ident) }}
 {{- else if IsInteger $info.Kind -}}
