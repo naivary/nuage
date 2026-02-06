@@ -1,5 +1,7 @@
 package main
 
+import h "net/http"
+
 type (
 	String    string
 	Int32     int32
@@ -36,4 +38,8 @@ type QueryParamRequest struct {
 	SliceInt32    []int32           `query:"slice_int32,explode=false"`
 	MapExplode    map[string]string `query:"mapper"`
 	MapNotExplode map[string]string `query:"mapper,explode=false"`
+}
+
+type CookieParamRequest struct {
+	c h.Cookie `cookie:"x"`
 }

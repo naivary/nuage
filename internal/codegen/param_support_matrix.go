@@ -44,7 +44,7 @@ func isSupportedCookieParamType(typ types.Type) bool {
 	case *types.Pointer:
 		return isSupportedCookieParamType(t.Elem())
 	case *types.Named:
-		fqpn := fmt.Sprintf("%s.%s", t.Obj().Pkg(), t.Obj().Name())
+		fqpn := fmt.Sprintf("%s.%s", t.Obj().Pkg().Name(), t.Obj().Name())
 		return fqpn == "http.Cookie"
 	default:
 		return false
