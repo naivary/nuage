@@ -26,6 +26,7 @@ func (r *{{.Ident}}) Decode(req *http.Request) error {
             {{- template "query_parameter" (Dict "param" $param "info" $param.TypeInfo "pkg" $pkg) -}}
         {{- else if eq $param.In "header" -}}
         {{- else if eq $param.In "cookie" -}}
+            {{- template "cookie_parameter" (Dict "param" $param "info" $param.TypeInfo "pkg" $pkg) -}}
         {{- end -}}
     {{- end -}}
     return nil

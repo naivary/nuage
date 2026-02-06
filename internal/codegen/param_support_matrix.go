@@ -40,15 +40,17 @@ func isSupportedPathParamType(typ types.Type) bool {
 }
 
 func isSupportedCookieParamType(typ types.Type) bool {
-	switch t := typ.(type) {
-	case *types.Pointer:
-		return isSupportedCookieParamType(t.Elem())
-	case *types.Named:
-		fqpn := fmt.Sprintf("%s.%s", t.Obj().Pkg().Name(), t.Obj().Name())
-		return fqpn == "http.Cookie"
-	default:
+	ptr, isPtr := typ.(*types.Pointer)
+	if !isPtr {
 		return false
 	}
+	typ = ptr.Elem()
+	named, isNamed := typ.(*types.Named)
+	if !isNamed {
+		return false
+	}
+	fqpn := fmt.Sprintf("%s.%s", named.Obj().Pkg().Name(), named.Obj().Name())
+	return fqpn == "http.Cookie"
 }
 
 func isSupportedHeaderParamType(typ types.Type) bool {

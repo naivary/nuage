@@ -29,6 +29,8 @@
     {{- else if eq $info.Kind "named" -}}
         {{- if eq $info.Pkg $pkg -}}
             {{ $info.Ident }}({{ $arg }})
+        {{- else if and (eq $info.Ident "Cookie") -}}
+            {{ $arg }}
         {{- else -}}
             {{ $info.Pkg }}.{{ $info.Ident }}({{ $arg }})
         {{- end -}}

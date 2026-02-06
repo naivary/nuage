@@ -1,0 +1,19 @@
+{{ define "cookie_parameter" }}
+{{- $param := (index . "param") -}}
+{{- $info := (index . "info") -}}
+{{- $pkg := (index . "pkg") }}
+{{$param.Ident}}, err := req.Cookie("{{$param.Ident}}")
+{{- if $param.Opts.Required }}
+if err != nil {
+    return err
+}
+r.{{$param.FieldIdent}} = {{$param.Ident}}
+{{- else }}
+if err != nil {
+    if !errors.Is(err, http.ErrNoCookie) {
+        return err
+    }
+}
+r.{{$param.FieldIdent}} = {{$param.Ident}}
+{{- end }}
+{{ end }}

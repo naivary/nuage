@@ -1,6 +1,6 @@
 package main
 
-import h "net/http"
+import "net/http"
 
 type (
 	String    string
@@ -41,5 +41,5 @@ type QueryParamRequest struct {
 }
 
 type CookieParamRequest struct {
-	c h.Cookie `cookie:"x"`
+	CPtr *http.Cookie `cookie:"x_ptr"`
 }

@@ -98,10 +98,12 @@ func ParseParamOpts(tag reflect.StructTag) (*ParamOpts, error) {
 	opts := defaultParamOpts(definedOpts[0], in)
 	// per default all parameters are required and become
 	// optional when a default is set.
-	opts.Required = true
 	for _, opt := range definedOpts[1:] {
 		if opt == "deprecated" {
 			opts.IsDeprecated = true
+		}
+		if opt == "required" {
+			opts.Required = true
 		}
 		if strings.HasPrefix(opt, "explode") {
 			_, value, _ := strings.Cut(opt, "=")
